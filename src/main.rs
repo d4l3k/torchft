@@ -1,10 +1,13 @@
+use std::sync::Arc;
+
 use tokio::runtime::Runtime;
 
 mod coordinator;
 use coordinator::Coordinator;
 
-use tonic::{transport::Server, Request, Response, Status};
-use torchftpb::coordinator_service_server::{CoordinatorService, CoordinatorServiceServer};
+use tonic::transport::Server;
+use torchftpb::coordinator_service_server::{CoordinatorServiceServer};
+
 
 pub mod torchftpb {
     tonic::include_proto!("torchft");
@@ -18,17 +21,17 @@ fn main() {
         .init()
         .unwrap();
 
-    let mut c = Coordinator::new(0, 3);
+    let c = Arc::new(Coordinator::new(0, 3));
     let rt = Runtime::new().unwrap();
 
     let addr = "[::1]:50051".parse().unwrap();
 
-    let grpcHandle = rt.spawn(
+    let grpc_handle = rt.spawn(
         Server::builder()
-            .add_service(CoordinatorServiceServer::new(c))
+            .add_service(CoordinatorServiceServer::new(c.clone()))
             .serve(addr),
     );
 
     rt.block_on(c.run()).unwrap();
-    rt.block_on(grpcHandle);
+    rt.block_on(grpc_handle).unwrap();
 }

@@ -7,13 +7,14 @@ use raft::eraftpb::ConfChangeV2;
 use raft::{raw_node::RawNode, raw_node::Ready, storage::MemStorage, Config};
 use slog::{o, Drain};
 use tokio::time::sleep;
-use tonic::{transport::Server, Request, Response, Status};
+use tonic::{Request, Response, Status};
 
-use crate::torchftpb::coordinator_service_server::{CoordinatorService, CoordinatorServiceServer};
+use crate::torchftpb::coordinator_service_server::{CoordinatorService};
 use crate::torchftpb::{RaftMessageRequest, RaftMessageResponse};
+use std::sync::{Arc, Mutex};
 
 pub struct Coordinator {
-    node: RawNode<MemStorage>,
+    node: Mutex<RawNode<MemStorage>>,
 }
 
 impl Coordinator {
@@ -40,32 +41,41 @@ impl Coordinator {
         cc.set_changes(steps.into());
         node.apply_conf_change(&cc).unwrap();
 
-        Self { node: node }
+        Self { node: Mutex::new(node) }
     }
 
-    pub async fn run(&mut self) -> Result<()> {
+    pub async fn run(&self) -> Result<()> {
         info!("running raft loop...");
 
         loop {
-            self.node.tick();
-
-            if self.node.has_ready() {
-                let ready = self.node.ready();
-                self.process_ready(ready).await?;
-            }
+            self.tick().await?;
 
             // TODO: account for tick lag
             sleep(Duration::from_millis(100)).await;
         }
     }
 
-    async fn process_ready(&mut self, ready: Ready) -> Result<()> {
+    async fn tick(&self) -> Result<()> {
+        let mut node = self.node.lock().unwrap();
+        node.tick();
+
+        if node.has_ready() {
+            let ready = node.ready();
+
+            // TODO: release node lock when processing
+            self.process_ready(ready).await?;
+        }
+
+        Ok(())
+    }
+
+    async fn process_ready(&self, ready: Ready) -> Result<()> {
         Ok(())
     }
 }
 
 #[tonic::async_trait]
-impl CoordinatorService for Coordinator {
+impl CoordinatorService for Arc<Coordinator> {
     async fn raft_message(
         &self,
         request: Request<RaftMessageRequest>, // Accept request of type HelloRequest
