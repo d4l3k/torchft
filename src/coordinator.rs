@@ -1,7 +1,8 @@
+use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use anyhow::Result;
-use log::{info, warn};
+use log::info;
 use raft::eraftpb::ConfChangeType;
 use raft::eraftpb::ConfChangeV2;
 use raft::{raw_node::RawNode, raw_node::Ready, storage::MemStorage, Config};
@@ -9,11 +10,14 @@ use slog::{o, Drain};
 use tokio::time::sleep;
 use tonic::{Request, Response, Status};
 
-use crate::torchftpb::coordinator_service_server::{CoordinatorService};
-use crate::torchftpb::{RaftMessageRequest, RaftMessageResponse};
-use std::sync::{Arc, Mutex};
+use crate::torchftpb::coordinator_service_client::CoordinatorServiceClient;
+use crate::torchftpb::coordinator_service_server::CoordinatorService;
+use crate::torchftpb::{
+    InfoRequest, InfoResponse, NodeInfo, RaftMessageRequest, RaftMessageResponse,
+};
 
 pub struct Coordinator {
+    rank: u64,
     node: Mutex<RawNode<MemStorage>>,
 }
 
@@ -41,7 +45,10 @@ impl Coordinator {
         cc.set_changes(steps.into());
         node.apply_conf_change(&cc).unwrap();
 
-        Self { node: Mutex::new(node) }
+        Self {
+            rank: rank,
+            node: Mutex::new(node),
+        }
     }
 
     pub async fn run(&self) -> Result<()> {
@@ -72,20 +79,40 @@ impl Coordinator {
     async fn process_ready(&self, ready: Ready) -> Result<()> {
         Ok(())
     }
+
+    pub async fn bootstrap(&self, addr: String) -> Result<()> {
+        let mut client = CoordinatorServiceClient::connect(addr).await?;
+
+        let request = tonic::Request::new(InfoRequest {
+            requester: Some(NodeInfo {
+                rank: self.rank,
+                address: "".to_string(),
+            }),
+        });
+
+        Ok(())
+    }
 }
 
 #[tonic::async_trait]
 impl CoordinatorService for Arc<Coordinator> {
     async fn raft_message(
         &self,
-        request: Request<RaftMessageRequest>, // Accept request of type HelloRequest
+        request: Request<RaftMessageRequest>,
     ) -> Result<Response<RaftMessageResponse>, Status> {
-        // Return an instance of type HelloReply
         println!("Got a request: {:?}", request);
 
         let reply = RaftMessageResponse {
             message: format!("Hello {}!", request.into_inner().name), // We must use .into_inner() as the fields of gRPC requests and responses are private
         };
+
+        Ok(Response::new(reply)) // Send back our formatted greeting
+    }
+
+    async fn info(&self, request: Request<InfoRequest>) -> Result<Response<InfoResponse>, Status> {
+        println!("Got a request: {:?}", request);
+
+        let reply = InfoResponse { peers: vec![] };
 
         Ok(Response::new(reply)) // Send back our formatted greeting
     }

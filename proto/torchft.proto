@@ -11,6 +11,20 @@ message RaftMessageResponse {
     string message = 1;
 }
 
+message NodeInfo {
+    uint64 rank = 1;
+    string address = 2;
+}
+
+message InfoRequest {
+    NodeInfo requester = 1;
+}
+
+message InfoResponse {
+    repeated NodeInfo peers = 1;
+}
+
 service CoordinatorService {
     rpc RaftMessage (RaftMessageRequest) returns (RaftMessageResponse);
+    rpc Info (InfoRequest) returns (InfoResponse);
 }
