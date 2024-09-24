@@ -2,17 +2,20 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Duration;
 use std::ops::DerefMut;
+use std::io::Cursor;
 
 use anyhow::Result;
 use log::info;
 use raft::eraftpb::ConfChangeType;
 use raft::eraftpb::ConfChangeV2;
+use raft::eraftpb::Message as RaftMessage;
 use raft::{raw_node::RawNode, raw_node::Ready, storage::MemStorage, Config};
 use slog::{o, Drain};
 use tokio::sync::Mutex;
 use tokio::time::sleep;
 use tonic::transport::Endpoint;
 use tonic::{Request, Response, Status};
+use prost::Message;
 
 use crate::torchftpb::coordinator_service_client::CoordinatorServiceClient;
 use crate::torchftpb::coordinator_service_server::CoordinatorService;
@@ -124,6 +127,7 @@ impl Coordinator {
     }
 
     async fn handle_messages(&self, node: &mut RawNode<MemStorage>, ready: &Ready) -> Result<()> {
+        let messages = ready.messages();
         Ok(())
     }
 
@@ -191,6 +195,11 @@ impl CoordinatorService for Arc<Coordinator> {
         println!("Got a message: {:?}", request);
 
         let reply = RaftMessageResponse {};
+
+        let message = RaftMessage::decode(&mut Cursor::new(request.into_inner().message))?;
+
+        let mut node = self.node.lock().await;
+        node.step(message);
 
         Ok(Response::new(reply))
     }
