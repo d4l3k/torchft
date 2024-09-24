@@ -1,5 +1,6 @@
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use std::time::Duration;
+use std::collections::HashMap;
 
 use anyhow::Result;
 use log::info;
@@ -8,6 +9,7 @@ use raft::eraftpb::ConfChangeV2;
 use raft::{raw_node::RawNode, raw_node::Ready, storage::MemStorage, Config};
 use slog::{o, Drain};
 use tokio::time::sleep;
+use tokio::sync::Mutex;
 use tonic::{Request, Response, Status};
 
 use crate::torchftpb::coordinator_service_client::CoordinatorServiceClient;
@@ -16,13 +18,17 @@ use crate::torchftpb::{
     InfoRequest, InfoResponse, NodeInfo, RaftMessageRequest, RaftMessageResponse,
 };
 
+
 pub struct Coordinator {
     rank: u64,
+    local_addr: String,
+
     node: Mutex<RawNode<MemStorage>>,
+    peers: Mutex<HashMap<u64, NodeInfo>>,
 }
 
 impl Coordinator {
-    pub fn new(rank: u64, world_size: u64) -> Self {
+    pub fn new(rank: u64, world_size: u64, local_addr: String) -> Self {
         let config = Config {
             // ids start at 1
             id: rank + 1,
@@ -47,11 +53,13 @@ impl Coordinator {
 
         Self {
             rank: rank,
+            local_addr: local_addr,
             node: Mutex::new(node),
+            peers: Mutex::new(HashMap::new()),
         }
     }
 
-    pub async fn run(&self) -> Result<()> {
+    pub async fn run(self: Arc<Self>) -> Result<()> {
         info!("running raft loop...");
 
         loop {
@@ -63,7 +71,7 @@ impl Coordinator {
     }
 
     async fn tick(&self) -> Result<()> {
-        let mut node = self.node.lock().unwrap();
+        let mut node = self.node.lock().await;
         node.tick();
 
         if node.has_ready() {
@@ -80,15 +88,43 @@ impl Coordinator {
         Ok(())
     }
 
-    pub async fn bootstrap(&self, addr: String) -> Result<()> {
-        let mut client = CoordinatorServiceClient::connect(addr).await?;
+    pub async fn bootstrap(self: Arc<Self>, addrs: Vec<String>) -> Result<()> {
+        let mut addresses: Vec<String> = addrs.clone();
 
-        let request = tonic::Request::new(InfoRequest {
-            requester: Some(NodeInfo {
-                rank: self.rank,
-                address: "".to_string(),
-            }),
-        });
+        while addresses.len() > 0 {
+            let addr = addresses.pop().unwrap();
+            if addr == "" {
+                continue;
+            }
+
+            info!("bootstrapping from {}", addr);
+
+            let mut client = CoordinatorServiceClient::connect(addr).await?;
+
+            let request = tonic::Request::new(InfoRequest {
+                requester: Some(NodeInfo {
+                    rank: self.rank,
+                    address: "".to_string(),
+                }),
+            });
+
+            let response = client.info(request).await?;
+
+            let info_response = response.into_inner();
+
+            info!("info response {:?}", info_response);
+
+
+            let mut peers = self.peers.lock().await;
+
+            for peer in info_response.peers {
+                if !peers.contains_key(&peer.rank) {
+                    peers.insert(peer.rank, peer.clone());
+                    addresses.push(peer.address.clone());
+                }
+            }
+        }
+
 
         Ok(())
     }
@@ -110,9 +146,14 @@ impl CoordinatorService for Arc<Coordinator> {
     }
 
     async fn info(&self, request: Request<InfoRequest>) -> Result<Response<InfoResponse>, Status> {
-        println!("Got a request: {:?}", request);
+        info!("got info request: {:?}", request);
 
-        let reply = InfoResponse { peers: vec![] };
+        let mut peers = self.peers.lock().await;
+
+        let requester = request.into_inner().requester.unwrap();
+        peers.insert(requester.rank, requester);
+
+        let reply = InfoResponse { peers: peers.values().cloned().collect() };
 
         Ok(Response::new(reply)) // Send back our formatted greeting
     }
