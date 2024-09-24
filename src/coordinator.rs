@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Duration;
+use std::ops::DerefMut;
 
 use anyhow::Result;
 use log::info;
@@ -74,17 +75,55 @@ impl Coordinator {
         let mut node = self.node.lock().await;
         node.tick();
 
-        if node.has_ready() {
-            let ready = node.ready();
-
-            // TODO: release node lock when processing
-            self.process_ready(ready).await?;
+        if !node.has_ready() {
+            return Ok(())
         }
+        let ready = node.ready();
+
+        // 1. Check whether messages is empty or not. If not, it means that the
+        // node will send messages to other nodes:
+
+        self.handle_messages(node.deref_mut(), &ready).await?;
+
+        // 2. Check whether snapshot is empty or not. If not empty, it means
+        // that the Raft node has received a Raft snapshot from the leader and
+        // we must apply the snapshot:
+
+        if !ready.snapshot().is_empty() {
+            // This is a snapshot, we need to apply the snapshot at first.
+            node.mut_store()
+                .wl()
+                .apply_snapshot(ready.snapshot().clone())
+                .unwrap();
+        }
+
+        // 3. Check whether committed_entries is empty or not. If not, it means
+        // that there are some newly committed log entries which you must apply
+        // to the state machine. Of course, after applying, you need to update
+        // the applied index and resume apply later:
+
+        // 4. Check whether entries is empty or not. If not empty, it means that
+        // there are newly added entries but have not been committed yet, we
+        // must append the entries to the Raft log:
+
+        // 5. Check whether hs is empty or not. If not empty, it means that the
+        // HardState of the node has changed. For example, the node may vote for
+        // a new leader, or the commit index has been increased. We must persist
+        // the changed HardState:
+
+        // 6. Check whether persisted_messages is empty or not. If not, it means
+        // that the node will send messages to other nodes after persisting
+        // hardstate, entries and snapshot:
+
+        // 7. Call advance to notify that the previous work is completed. Get
+        // the return value LightReady and handle its messages and
+        // committed_entries like step 1 and step 3 does. Then call
+        // advance_apply to advance the applied index inside.
 
         Ok(())
     }
 
-    async fn process_ready(&self, ready: Ready) -> Result<()> {
+    async fn handle_messages(&self, node: &mut RawNode<MemStorage>, ready: &Ready) -> Result<()> {
         Ok(())
     }
 
@@ -149,13 +188,11 @@ impl CoordinatorService for Arc<Coordinator> {
         &self,
         request: Request<RaftMessageRequest>,
     ) -> Result<Response<RaftMessageResponse>, Status> {
-        println!("Got a request: {:?}", request);
+        println!("Got a message: {:?}", request);
 
-        let reply = RaftMessageResponse {
-            message: format!("Hello {}!", request.into_inner().name), // We must use .into_inner() as the fields of gRPC requests and responses are private
-        };
+        let reply = RaftMessageResponse {};
 
-        Ok(Response::new(reply)) // Send back our formatted greeting
+        Ok(Response::new(reply))
     }
 
     async fn info(&self, request: Request<InfoRequest>) -> Result<Response<InfoResponse>, Status> {
