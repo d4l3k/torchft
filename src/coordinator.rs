@@ -1,6 +1,6 @@
+use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Duration;
-use std::collections::HashMap;
 
 use anyhow::Result;
 use log::info;
@@ -8,8 +8,9 @@ use raft::eraftpb::ConfChangeType;
 use raft::eraftpb::ConfChangeV2;
 use raft::{raw_node::RawNode, raw_node::Ready, storage::MemStorage, Config};
 use slog::{o, Drain};
-use tokio::time::sleep;
 use tokio::sync::Mutex;
+use tokio::time::sleep;
+use tonic::transport::Endpoint;
 use tonic::{Request, Response, Status};
 
 use crate::torchftpb::coordinator_service_client::CoordinatorServiceClient;
@@ -17,7 +18,6 @@ use crate::torchftpb::coordinator_service_server::CoordinatorService;
 use crate::torchftpb::{
     InfoRequest, InfoResponse, NodeInfo, RaftMessageRequest, RaftMessageResponse,
 };
-
 
 pub struct Coordinator {
     rank: u64,
@@ -88,6 +88,13 @@ impl Coordinator {
         Ok(())
     }
 
+    fn node(&self) -> NodeInfo {
+        NodeInfo {
+            rank: self.rank,
+            address: self.local_addr.clone(),
+        }
+    }
+
     pub async fn bootstrap(self: Arc<Self>, addrs: Vec<String>) -> Result<()> {
         let mut addresses: Vec<String> = addrs.clone();
 
@@ -99,13 +106,15 @@ impl Coordinator {
 
             info!("bootstrapping from {}", addr);
 
-            let mut client = CoordinatorServiceClient::connect(addr).await?;
+            let conn = Endpoint::new(addr.clone())?
+                .connect_timeout(Duration::from_secs(10))
+                .connect()
+                .await?;
+
+            let mut client = CoordinatorServiceClient::new(conn);
 
             let request = tonic::Request::new(InfoRequest {
-                requester: Some(NodeInfo {
-                    rank: self.rank,
-                    address: "".to_string(),
-                }),
+                requester: Some(self.node()),
             });
 
             let response = client.info(request).await?;
@@ -114,17 +123,21 @@ impl Coordinator {
 
             info!("info response {:?}", info_response);
 
-
             let mut peers = self.peers.lock().await;
 
             for peer in info_response.peers {
+                if peer.rank == self.rank {
+                    continue;
+                }
                 if !peers.contains_key(&peer.rank) {
+                    info!("adding peer {:?}", peer);
                     peers.insert(peer.rank, peer.clone());
-                    addresses.push(peer.address.clone());
+                    if addr != peer.address {
+                        addresses.push(peer.address.clone());
+                    }
                 }
             }
         }
-
 
         Ok(())
     }
@@ -151,9 +164,13 @@ impl CoordinatorService for Arc<Coordinator> {
         let mut peers = self.peers.lock().await;
 
         let requester = request.into_inner().requester.unwrap();
+        info!("adding peer {:?}", requester);
         peers.insert(requester.rank, requester);
 
-        let reply = InfoResponse { peers: peers.values().cloned().collect() };
+        let mut peers_vec: Vec<NodeInfo> = peers.values().cloned().collect();
+        peers_vec.push(self.node());
+
+        let reply = InfoResponse { peers: peers_vec };
 
         Ok(Response::new(reply)) // Send back our formatted greeting
     }

@@ -1,12 +1,13 @@
-use std::sync::Arc;
-use std::fmt::format;
 use core::net::SocketAddr;
+use std::fmt::format;
+use std::sync::Arc;
 
+use anyhow::Result;
 use log::info;
 use structopt::StructOpt;
 use tokio::runtime::Runtime;
+use tokio::task::JoinSet;
 use tonic::transport::Server;
-use anyhow::Result;
 
 mod coordinator;
 use coordinator::Coordinator;
@@ -43,7 +44,6 @@ fn main() {
 
     let rt = Runtime::new().unwrap();
 
-
     rt.block_on(main_async(&rt)).unwrap();
 }
 
@@ -51,24 +51,36 @@ async fn main_async(rt: &Runtime) -> Result<()> {
     let opt = Opt::from_args();
     let bind: SocketAddr = opt.bind.parse().unwrap();
 
-    let local_addr = format!("{}:{}", "localhost", bind.port());
+    let local_addr = format!("http://{}:{}", "localhost", bind.port());
 
-    let c = Arc::new(Coordinator::new(opt.rank, opt.world_size, local_addr.clone()));
+    let c = Arc::new(Coordinator::new(
+        opt.rank,
+        opt.world_size,
+        local_addr.clone(),
+    ));
 
-
-    info!("Coordinator listening on {}, local_addr={}", bind, local_addr);
-
-    let raft_handle = rt.spawn(c.clone().run());
-    let grpc_handle = rt.spawn(
-        Server::builder()
-            .add_service(CoordinatorServiceServer::new(c.clone()))
-            .serve(bind),
+    info!(
+        "Coordinator listening on {}, local_addr={}",
+        bind, local_addr
     );
-    let bootstrap_handle = rt.spawn(c.clone().bootstrap(opt.bootstrap));
 
-    raft_handle.await?;
-    grpc_handle.await?;
-    bootstrap_handle.await?;
+    let mut set: JoinSet<Result<()>> = JoinSet::new();
+
+    set.spawn(c.clone().run());
+
+    let c_grpc = c.clone();
+    set.spawn(async move {
+        Server::builder()
+            .add_service(CoordinatorServiceServer::new(c_grpc))
+            .serve(bind)
+            .await
+            .map_err(|e| e.into())
+    });
+    set.spawn(c.clone().bootstrap(opt.bootstrap));
+
+    while let Some(res) = set.join_next().await {
+        res??;
+    }
 
     Ok(())
 }
