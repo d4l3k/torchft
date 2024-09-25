@@ -1,5 +1,4 @@
 use core::net::SocketAddr;
-use std::fmt::format;
 use std::sync::Arc;
 
 use anyhow::Result;
@@ -44,10 +43,10 @@ fn main() {
 
     let rt = Runtime::new().unwrap();
 
-    rt.block_on(main_async(&rt)).unwrap();
+    rt.block_on(main_async()).unwrap();
 }
 
-async fn main_async(rt: &Runtime) -> Result<()> {
+async fn main_async() -> Result<()> {
     let opt = Opt::from_args();
     let bind: SocketAddr = opt.bind.parse().unwrap();
 
