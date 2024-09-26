@@ -8,14 +8,9 @@ use tokio::runtime::Runtime;
 use tokio::task::JoinSet;
 use tonic::transport::Server;
 
-mod coordinator;
-use coordinator::Coordinator;
+use torchft::coordinator::Coordinator;
 
-use torchftpb::coordinator_service_server::CoordinatorServiceServer;
-
-pub mod torchftpb {
-    tonic::include_proto!("torchft");
-}
+use torchft::torchftpb::coordinator_service_server::CoordinatorServiceServer;
 
 /// A StructOpt example
 #[derive(StructOpt, Debug)]

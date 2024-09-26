@@ -20,3 +20,7 @@ tonic = "0.12.2"
 
 [build-dependencies]
 tonic-build = "0.12.2"
+
+[lib]
+name = "torchft"
+crate-type = ["cdylib", "rlib"]

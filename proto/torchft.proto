@@ -26,3 +26,34 @@ service CoordinatorService {
     rpc RaftMessage (RaftMessageRequest) returns (RaftMessageResponse);
     rpc Info (InfoRequest) returns (InfoResponse);
 }
+
+message LighthouseQuorumRequest {
+}
+
+message LighthouseQuorumResponse {
+}
+
+service Lighthouse {
+    rpc Quorum (LighthouseQuorumRequest) returns (LighthouseQuorumResponse);
+}
+
+message ManagerQuorumRequest {
+    int64 rank = 1;
+}
+
+message ManagerQuorumResponse {
+    string store_address = 1;
+}
+
+message CheckpointRequest {
+    int64 rank = 1;
+}
+
+message CheckpointResponse {
+    string address = 1;
+}
+
+service Manager {
+    rpc Quorum (ManagerQuorumRequest) returns (ManagerQuorumResponse);
+    rpc Checkpoint(CheckpointRequest) returns (CheckpointResponse);
+}
