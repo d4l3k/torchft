@@ -27,13 +27,25 @@ service CoordinatorService {
     rpc Info (InfoRequest) returns (InfoResponse);
 }
 
+message QuorumMember {
+    string replica_id = 1;
+    string address = 2;
+    int64 step = 3;
+}
+
+message Quorum {
+    repeated QuorumMember participants = 1;
+}
+
 message LighthouseQuorumRequest {
+    QuorumMember requester = 1;
 }
 
 message LighthouseQuorumResponse {
+    Quorum quorum = 1;
 }
 
-service Lighthouse {
+service LighthouseService {
     rpc Quorum (LighthouseQuorumRequest) returns (LighthouseQuorumResponse);
 }
 
@@ -53,7 +65,7 @@ message CheckpointResponse {
     string address = 1;
 }
 
-service Manager {
+service ManagerService {
     rpc Quorum (ManagerQuorumRequest) returns (ManagerQuorumResponse);
     rpc Checkpoint(CheckpointRequest) returns (CheckpointResponse);
 }

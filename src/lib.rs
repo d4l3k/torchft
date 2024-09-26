@@ -1,4 +1,5 @@
 pub mod coordinator;
+pub mod lighthouse;
 
 pub mod torchftpb {
     tonic::include_proto!("torchft");
