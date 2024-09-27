@@ -269,6 +269,7 @@ mod tests {
                     member: QuorumMember {
                         replica_id: "a".to_string(),
                         address: "".to_string(),
+                        store_address: "".to_string(),
                         step: 1,
                     },
                 },
@@ -300,6 +301,7 @@ mod tests {
                     member: QuorumMember {
                         replica_id: "a".to_string(),
                         address: "".to_string(),
+                        store_address: "".to_string(),
                         step: 1,
                     },
                 },
@@ -311,9 +313,11 @@ mod tests {
         {
             let mut state = lighthouse.state.lock().await;
             state.prev_quorum = Some(Quorum {
+                quorum_id: 1,
                 participants: vec![QuorumMember {
                     replica_id: "a".to_string(),
                     address: "".to_string(),
+                    store_address: "".to_string(),
                     step: 1,
                 }],
             });
@@ -342,6 +346,7 @@ mod tests {
             requester: Some(QuorumMember {
                 replica_id: "foo".to_string(),
                 address: "".to_string(),
+                store_address: "".to_string(),
                 step: 10,
             }),
         });
@@ -351,5 +356,33 @@ mod tests {
         assert_eq!(quorum.participants.len(), 1);
 
         lighthouse_task.abort();
+    }
+
+    #[tokio::test]
+    async fn test_quorum_changed() {
+        let a = vec![QuorumMember {
+            replica_id: "1".to_string(),
+            address: "".to_string(),
+            store_address: "".to_string(),
+            step: 1,
+        }];
+        let b = vec![QuorumMember {
+            replica_id: "1".to_string(),
+            address: "changed".to_string(),
+            store_address: "changed".to_string(),
+            step: 1000,
+        }];
+
+        // replica_id is the same
+        assert!(!quorum_changed(&a, &b));
+
+        let c = vec![QuorumMember {
+            replica_id: "2".to_string(),
+            address: "".to_string(),
+            store_address: "".to_string(),
+            step: 1,
+        }];
+        // replica_id changed
+        assert!(quorum_changed(&a, &c));
     }
 }
