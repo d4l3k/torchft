@@ -79,10 +79,16 @@ impl ManagerClient {
         })
     }
 
-    fn quorum(&mut self, rank: i64, step: i64) -> PyResult<(i64, i64, i64, String, String, i64, i64)> {
+    fn quorum(
+        &mut self,
+        rank: i64,
+        step: i64,
+        checkpoint_server_addr: String,
+    ) -> PyResult<(i64, i64, i64, String, String, i64, i64)> {
         let request = tonic::Request::new(ManagerQuorumRequest {
             rank: rank,
             step: step,
+            checkpoint_server_addr: checkpoint_server_addr,
         });
         let response = self
             .runtime
@@ -98,6 +104,16 @@ impl ManagerClient {
             resp.max_step,
             resp.num_max,
         ))
+    }
+
+    fn checkpoint_address(&mut self, rank: i64) -> PyResult<String> {
+        let request = tonic::Request::new(CheckpointAddressRequest { rank: rank });
+        let response = self
+            .runtime
+            .block_on(self.client.checkpoint_address(request))
+            .map_err(|e| PyRuntimeError::new_err(e.to_string()))?;
+        let resp = response.into_inner();
+        Ok(resp.checkpoint_server_address)
     }
 }
 

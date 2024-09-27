@@ -9,6 +9,7 @@ import logging
 from torch.distributed import TCPStore, PrefixStore, ProcessGroupGloo
 
 from torchft import Manager as _Manager, ManagerClient
+from .checkpointing import CheckpointServer
 
 logger = logging.getLogger(__name__)
 
@@ -43,6 +44,8 @@ class Manager:
         rank = int(os.environ["RANK"])
         world_size = int(os.environ["WORLD_SIZE"])
         self._rank = rank
+
+        self._ckpt_server = CheckpointServer(state_dict)
 
         self._store = TCPStore(
             host_name=store_addr, 
@@ -88,6 +91,7 @@ class Manager:
 
     def step(self) -> None:
         self._step += 1
+        self._ckpt_server.allow_checkpoint()
 
         (
             quorum_id,
@@ -97,7 +101,11 @@ class Manager:
             store_address,
             max_step,
             num_max,
-        ) = self._client.quorum(rank=self._rank, step=self._step)
+        ) = self._client.quorum(
+            rank=self._rank, 
+            step=self._step,
+            checkpoint_server_addr=self._ckpt_server.address(),
+        )
 
         if quorum_id != self._quorum_id:
             logger.info(f"reconfiguring for quorum_id {quorum_id}")
@@ -123,6 +131,8 @@ class Manager:
             self._step = max_step
 
     def should_commit(self) -> bool:
+        self._ckpt_server.disallow_checkpoint()
+
         # TODO: sync error condition
         if self._errored:
             return False

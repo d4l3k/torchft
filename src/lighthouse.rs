@@ -4,7 +4,7 @@ use std::time::Duration;
 use std::time::Instant;
 
 use anyhow::Result;
-use log::info;
+use log::{error, info};
 use structopt::StructOpt;
 use tokio::sync::broadcast;
 use tokio::sync::Mutex;
@@ -133,14 +133,17 @@ impl Lighthouse {
                     .values()
                     .map(|details| details.member.clone())
                     .collect();
-                
+
                 // Sort by replica ID to get a consistent ordering across runs.
                 participants.sort_by_key(|p| p.replica_id.clone());
 
                 // only increment quorum ID if something about the quorum
                 // changed (members/addresses/etc)
                 if state.prev_quorum.is_none()
-                    || quorum_changed(&participants, &state.prev_quorum.as_ref().unwrap().participants)
+                    || quorum_changed(
+                        &participants,
+                        &state.prev_quorum.as_ref().unwrap().participants,
+                    )
                 {
                     quorum_id += 1;
                     info!("Detected quorum change, bumping quorum_id to {}", quorum_id);
@@ -155,7 +158,10 @@ impl Lighthouse {
 
                 state.prev_quorum = Some(quorum.clone());
                 state.participants.clear();
-                state.channel.send(quorum)?;
+                match state.channel.send(quorum) {
+                    Ok(_) => (),
+                    Err(e) => error!("failed to send quorum {}", e),
+                }
             }
 
             sleep(Duration::from_millis(self.opt.quorum_tick_ms)).await;

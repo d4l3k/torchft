@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -14,12 +15,14 @@ use crate::torchftpb::lighthouse_service_client::LighthouseServiceClient;
 use crate::torchftpb::manager_service_client::ManagerServiceClient;
 use crate::torchftpb::{
     manager_service_server::{ManagerService, ManagerServiceServer},
-    LighthouseQuorumRequest, ManagerQuorumRequest, ManagerQuorumResponse, Quorum, QuorumMember,
+    CheckpointAddressRequest, CheckpointAddressResponse, LighthouseQuorumRequest,
+    ManagerQuorumRequest, ManagerQuorumResponse, Quorum, QuorumMember,
 };
 
 struct ManagerState {
     channel: broadcast::Sender<Quorum>,
     participants: u64,
+    checkpoint_servers: HashMap<i64, String>,
 }
 
 pub struct Manager {
@@ -64,6 +67,7 @@ impl Manager {
             state: Mutex::new(ManagerState {
                 channel: tx,
                 participants: 0,
+                checkpoint_servers: HashMap::new(),
             }),
         })
     }
@@ -80,7 +84,10 @@ impl Manager {
     }
 
     async fn lighthouse_client_new(&self) -> Result<LighthouseServiceClient<Channel>> {
-        info!("Manager: connecting to lighthouse at {}", &self.lighthouse_addr);
+        info!(
+            "Manager: connecting to lighthouse at {}",
+            &self.lighthouse_addr
+        );
 
         let conn = Endpoint::new(self.lighthouse_addr.clone())?
             .connect_timeout(Duration::from_secs(10))
@@ -103,6 +110,11 @@ impl ManagerService for Arc<Manager> {
 
         let mut rx = {
             let mut state = self.state.lock().await;
+
+            state
+                .checkpoint_servers
+                .insert(req.rank, req.checkpoint_server_addr.clone());
+
             // TODO check step
             state.participants += 1;
             let rx = state.channel.subscribe();
@@ -176,6 +188,25 @@ impl ManagerService for Arc<Manager> {
 
         info!("returning quorum for rank {}", rank);
 
+        Ok(Response::new(reply))
+    }
+
+    async fn checkpoint_address(
+        &self,
+        request: Request<CheckpointAddressRequest>,
+    ) -> Result<Response<CheckpointAddressResponse>, Status> {
+        let state = self.state.lock().await;
+
+        let req = request.into_inner();
+
+        let address = state
+            .checkpoint_servers
+            .get(&req.rank)
+            .ok_or_else(|| Status::invalid_argument("rank not found"))?;
+
+        let reply = CheckpointAddressResponse {
+            checkpoint_server_address: address.clone(),
+        };
         Ok(Response::new(reply))
     }
 }

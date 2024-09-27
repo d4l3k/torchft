@@ -16,7 +16,11 @@ m = nn.Linear(2, 3)
 
 optimizer = optim.AdamW(m.parameters())
 
-manager = Manager(ReconfigPGGloo(), None, None)
+manager = Manager(
+    pg=ReconfigPGGloo(), 
+    load_state_dict=m.load_state_dict, 
+    state_dict=m.state_dict,
+)
 
 print(m)
 

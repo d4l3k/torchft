@@ -54,6 +54,7 @@ service LighthouseService {
 message ManagerQuorumRequest {
     int64 rank = 1;
     int64 step = 2;
+    string checkpoint_server_addr = 3;
 }
 
 message ManagerQuorumResponse {
@@ -66,15 +67,15 @@ message ManagerQuorumResponse {
     int64 replica_world = 7;
 }
 
-message CheckpointRequest {
+message CheckpointAddressRequest {
     int64 rank = 1;
 }
 
-message CheckpointResponse {
-    string address = 1;
+message CheckpointAddressResponse {
+    string checkpoint_server_address = 1;
 }
 
 service ManagerService {
     rpc Quorum (ManagerQuorumRequest) returns (ManagerQuorumResponse);
-    //rpc Checkpoint(CheckpointRequest) returns (CheckpointResponse);
+    rpc Checkpoint_address(CheckpointAddressRequest) returns (CheckpointAddressResponse);
 }
