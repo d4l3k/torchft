@@ -1,10 +1,9 @@
 use std::collections::HashMap;
-use std::net::SocketAddr;
 use std::sync::Arc;
 use std::time::Duration;
 use std::time::Instant;
 
-use anyhow::{Error, Result};
+use anyhow::Result;
 use log::info;
 use structopt::StructOpt;
 use tokio::sync::broadcast;
@@ -37,7 +36,7 @@ pub struct Lighthouse {
 
 #[derive(StructOpt, Debug)]
 #[structopt()]
-struct LighthouseOpt {
+pub struct LighthouseOpt {
     // bind is the address to bind the server to.
     #[structopt(long = "bind", default_value = "[::]:19510")]
     bind: String,
@@ -63,7 +62,7 @@ impl Lighthouse {
     }
 
     async fn quorum_valid(&self) -> bool {
-        let mut state = self.state.lock().await;
+        let state = self.state.lock().await;
 
         let mut first_joined = Instant::now();
 
@@ -122,7 +121,7 @@ impl Lighthouse {
                 };
                 state.prev_quorum = Some(quorum.clone());
                 state.participants.clear();
-                state.channel.send(quorum);
+                state.channel.send(quorum)?;
             }
 
             sleep(Duration::from_millis(100)).await;

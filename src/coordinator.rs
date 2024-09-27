@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::ops::DerefMut;
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -9,7 +8,7 @@ use protobuf::Message;
 use raft::eraftpb::ConfChangeType;
 use raft::eraftpb::ConfChangeV2;
 use raft::eraftpb::Message as RaftMessage;
-use raft::{raw_node::RawNode, raw_node::Ready, storage::MemStorage, Config};
+use raft::{raw_node::RawNode, storage::MemStorage, Config};
 use slog::{o, Drain};
 use tokio::sync::Mutex;
 use tokio::time::sleep;
