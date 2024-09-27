@@ -10,6 +10,7 @@ import torch
 
 logger = logging.getLogger(__name__)
 
+
 class CheckpointServer:
     def __init__(self, state_dict) -> None:
         self._checkpoint_lock = threading.Lock()
@@ -17,6 +18,7 @@ class CheckpointServer:
         self._step = -1
 
         ckpt_server = self
+
         class RequestHandler(BaseHTTPRequestHandler):
             def do_GET(self):
                 with ckpt_server._checkpoint_lock:
@@ -24,22 +26,26 @@ class CheckpointServer:
 
                     if self.path != f"/checkpoint/{step}":
                         self.send_response(400)
-                        self.send_header('Content-type', 'text/plain')
+                        self.send_header("Content-type", "text/plain")
                         self.end_headers()
 
-                        self.wfile.write(f"invalid checkpoint requested, serving {step} but got {self.path}".encode())
+                        self.wfile.write(
+                            f"invalid checkpoint requested, serving {step} but got {self.path}".encode()
+                        )
 
                         return
 
                     self.send_response(200)
-                    self.send_header('Content-type', 'tensor') # TODO: correct mime type
+                    self.send_header(
+                        "Content-type", "tensor"
+                    )  # TODO: correct mime type
                     self.end_headers()
 
                     sd = state_dict()
 
                     torch.save(sd, self.wfile)
 
-        server_address = ('', 0)
+        server_address = ("", 0)
         self._server = HTTPServer(server_address, RequestHandler)
         logger.info(f"Started CheckpointServer on {self.address()}...")
 
@@ -62,7 +68,6 @@ class CheckpointServer:
     def address(self) -> str:
         port = self._server.socket.getsockname()[1]
         return f"http://{socket.gethostname()}:{port}/checkpoint/{self._step}"
-
 
     def _serve(self) -> None:
         try:

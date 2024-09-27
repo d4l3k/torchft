@@ -17,8 +17,8 @@ m = nn.Linear(2, 3)
 optimizer = optim.AdamW(m.parameters())
 
 manager = Manager(
-    pg=ReconfigPGGloo(), 
-    load_state_dict=m.load_state_dict, 
+    pg=ReconfigPGGloo(),
+    load_state_dict=m.load_state_dict,
     state_dict=m.state_dict,
 )
 
@@ -39,9 +39,6 @@ for i in range(1000):
     for p in m.parameters():
         if p.grad is not None:
             manager.allreduce_grad(p.grad)
-    
+
     if manager.should_commit():
         optimizer.step()
-
-
-    
