@@ -36,8 +36,8 @@ class ReconfigPGGloo(ReconfigPG):
 
 class Manager:
     def __init__(self, pg, load_state_dict, state_dict, port: int = MANAGER_DEFAULT_PORT) -> None:
-        self.load_state_dict = load_state_dict
-        self.state_dict = state_dict
+        self._load_state_dict = load_state_dict
+        self._state_dict = state_dict
 
         store_addr = os.environ["MASTER_ADDR"]
         store_port = int(os.environ["MASTER_PORT"])
@@ -126,7 +126,12 @@ class Manager:
         if self._healing:
             logger.info(f"detected behind step={self._step}, max_step={max_step}")
 
-            # TODO: live checkpoint loading
+            logger.info(f"fetching checkpoint server address from {address}")
+            primary_client = ManagerClient(address)
+            checkpoint_server_address = primary_client.checkpoint_address(self._rank)
+
+            state_dict = CheckpointServer.load_from_address(checkpoint_server_address)
+            self._load_state_dict(state_dict)
 
             self._step = max_step
 

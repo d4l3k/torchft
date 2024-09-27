@@ -42,11 +42,13 @@ class CheckpointServer:
 
     @classmethod
     def load_from_address(cls, address: str) -> object:
+        logger.info(f"fetching checkpoint from {address}")
+
         with urllib.request.urlopen(address) as f:
             data = f.read()
 
         reader = io.BytesIO(data)
-        return torch.load(reader)
+        return torch.load(reader, weights_only=True)
 
     def address(self) -> str:
         port = self._server.socket.getsockname()[1]

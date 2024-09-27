@@ -111,6 +111,8 @@ impl ManagerService for Arc<Manager> {
         let mut rx = {
             let mut state = self.state.lock().await;
 
+            // save checkpoint server info for healing process
+            // TODO: make separate call to set?
             state
                 .checkpoint_servers
                 .insert(req.rank, req.checkpoint_server_addr.clone());
@@ -178,6 +180,7 @@ impl ManagerService for Arc<Manager> {
         let primary = max_participants[rank as usize % max_participants.len()];
         let reply = ManagerQuorumResponse {
             quorum_id: quorum.quorum_id,
+            // address is used for looking up the checkpoint server address.
             address: primary.address.clone(),
             store_address: primary.store_address.clone(),
             max_step: max_step,

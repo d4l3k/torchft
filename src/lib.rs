@@ -15,7 +15,7 @@ pub mod torchftpb {
 }
 
 use crate::torchftpb::manager_service_client::ManagerServiceClient;
-use crate::torchftpb::ManagerQuorumRequest;
+use crate::torchftpb::{CheckpointAddressRequest, ManagerQuorumRequest};
 use pyo3::prelude::*;
 
 #[pyclass]

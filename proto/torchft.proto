@@ -77,5 +77,5 @@ message CheckpointAddressResponse {
 
 service ManagerService {
     rpc Quorum (ManagerQuorumRequest) returns (ManagerQuorumResponse);
-    rpc Checkpoint_address(CheckpointAddressRequest) returns (CheckpointAddressResponse);
+    rpc CheckpointAddress(CheckpointAddressRequest) returns (CheckpointAddressResponse);
 }
