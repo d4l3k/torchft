@@ -4,9 +4,7 @@ import logging
 import torch
 from torch import nn, optim
 
-# torchft import (TODO hack)
-sys.path.append(".")
-from python import Manager, ReconfigPGGloo
+from torchft import Manager, ReconfigPGGloo
 
 logging.basicConfig(level=logging.INFO)
 

@@ -7,7 +7,7 @@ import logging
 
 from torch.distributed import TCPStore, PrefixStore
 
-from torchft import Manager as _Manager, ManagerClient
+from .torchft import Manager as _Manager, ManagerClient
 from .checkpointing import CheckpointServer
 
 logger = logging.getLogger(__name__)
