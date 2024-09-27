@@ -119,6 +119,7 @@ class Manager:
             )
             store = PrefixStore(f"torchft/{quorum_id}/{self._rank}", store)
             self._pg.configure(store, replica_rank, replica_world)
+            self._quorum_id = quorum_id
 
         self._errored = False
 
