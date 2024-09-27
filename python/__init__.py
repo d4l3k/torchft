@@ -23,10 +23,14 @@ class ReconfigPG(ABC):
 
 
 class ReconfigPGGloo(ReconfigPG):
+    """
+    This is a wrapper around ProcessGroupGloo with a reconfiguration argument.
+    """
     def __init__(self) -> None:
         pass
 
     def configure(self, store, rank: int, world_size: int) -> None:
+        # TODO: set lower timeout
         self._pg = ProcessGroupGloo(store, rank, world_size)
 
     def allreduce(self, tensor) -> None:
@@ -35,6 +39,12 @@ class ReconfigPGGloo(ReconfigPG):
 
 
 class Manager:
+    """
+    Manager manages the full fault tolerant training loop.
+
+    NOTE: when saving periodic checkpoints you must save and restore the
+    Manager's state_dict as well to avoid synchronization issues.
+    """
     def __init__(self, pg, load_state_dict, state_dict, port: int = MANAGER_DEFAULT_PORT) -> None:
         self._load_state_dict = load_state_dict
         self._state_dict = state_dict
@@ -91,10 +101,16 @@ class Manager:
 
     def step(self) -> None:
         self._step += 1
+        self._errored = False
         self._ckpt_server.allow_checkpoint(self._step)
 
         # TODO: we should really be wrapping this whole section in a try-except
         # block to allow gracefully recovering from issues in process.
+
+        # TODO: run this on a background thread pool
+
+        # TODO: broadcast the weights iff step 0/1 to ensure initial model state
+        # is in sync
 
         (
             quorum_id,
@@ -124,7 +140,6 @@ class Manager:
             self._pg.configure(store, replica_rank, replica_world)
             self._quorum_id = quorum_id
 
-        self._errored = False
 
         self._healing = self._step != max_step
         if self._healing:

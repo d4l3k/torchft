@@ -5,48 +5,81 @@ This implements a lighthouse server that coordinates across the different
 replica groups and then a per replica group manager and fault tolerance library
 that can be used in a standard PyTorch training loop.
 
+This allows for membership changes at the training step granularity which can
+greatly improve efficiency by avoiding stop the world training on errors.
+
 ## Lighthouse
 
 You can start a lighthouse server by running:
 
 ```sh
-$ cargo run --bin lighthouse -- --min_replicas 2
+$ RUST_BACKTRACE=1 cargo run --bin lighthouse -- --min_replicas 1 --quorum_tick_ms 100 --join_timeout_ms 1000
 ```
 
-## Manager
+## Example Training Loop
 
-TODO: not implemented yet
+See [train.py](./train.py) for the full example.
+
+Invoke with:
+
+```sh
+$ TORCHFT_MANAGER_PORT=29512 TORCH_LIGHTHOUSE=http://localhost:19510 torchrun --master_port 29501 --nnodes 1 --nproc_per_node 1 train.py
+```
+
+train.py:
 
 ```py
-from torchft import Manager, NCCLBuilder
+from torchft import Manager, ReconfigPGGloo
 
-m = Model()
-optim = ...
+m = nn.Linear(2, 3)
+
+optimizer = optim.AdamW(m.parameters())
 
 manager = Manager(
-    rank=0,
-    load_state_dict=m.load_state_dict,
+    pg=ReconfigPGGloo(), 
+    load_state_dict=m.load_state_dict, 
     state_dict=m.state_dict,
-    process_group_builder=NCCLBuilder(),
 )
 
-# TODO: maybe this is a bad idea?
-# to save/load you should use the manager state dict as it correctly tracks step
-# counts
-manager.load_state_dict(manager.state_dict())
+print(m)
 
-for batch in ...:
+for i in range(1000):
     manager.step()
 
-    optim.zero_grad()
+    batch = torch.rand(2, 2, device=device)
 
-    loss = ...
+    optimizer.zero_grad()
+
+    out = m(batch)
+    loss = out.sum()
+
     loss.backward()
 
-    for p in optim.parameters():
+    for p in m.parameters():
         if p.grad is not None:
             manager.allreduce_grad(p.grad)
     
     if manager.should_commit():
-        optim.step()
+        optimizer.step()
 ```
+
+## Building Python Extension
+
+This uses pyo3
+
+```sh
+$ maturin develop
+```
+
+## Running Tests / Lint
+
+```sh
+$ cargo fmt
+% cargo test
+```
+
+## License
+
+Apache 2.0 -- see [LICENSE](./LICENSE) for more details.
+
+Copyright (c) Tristan Rice 2024
