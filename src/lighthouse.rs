@@ -111,17 +111,20 @@ impl Lighthouse {
     }
 
     pub async fn _run_quorum(self: Arc<Self>) -> Result<()> {
+        let mut quorum_id = 0;
         loop {
             let quorum_met = self.quorum_valid().await;
             if quorum_met {
                 let mut state = self.state.lock().await;
                 let quorum = Quorum {
+                    quorum_id: quorum_id,
                     participants: state
                         .participants
                         .values()
                         .map(|details| details.member.clone())
                         .collect(),
                 };
+                quorum_id += 1;
                 state.prev_quorum = Some(quorum.clone());
                 state.participants.clear();
                 state.channel.send(quorum)?;
@@ -178,10 +181,7 @@ impl LighthouseService for Arc<Lighthouse> {
             state.channel.subscribe()
         };
 
-        let quorum = rx
-            .recv()
-            .await
-            .map_err(|e| Status::internal(e.to_string()))?;
+        let quorum = rx.recv().await.map_err(|e| Status::from_error(e.into()))?;
 
         let reply = LighthouseQuorumResponse {
             quorum: Some(quorum),

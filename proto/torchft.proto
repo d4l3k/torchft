@@ -30,11 +30,13 @@ service CoordinatorService {
 message QuorumMember {
     string replica_id = 1;
     string address = 2;
-    int64 step = 3;
+    string store_address = 3;
+    int64 step = 4;
 }
 
 message Quorum {
-    repeated QuorumMember participants = 1;
+    int64 quorum_id = 1;
+    repeated QuorumMember participants = 2;
 }
 
 message LighthouseQuorumRequest {
@@ -51,10 +53,13 @@ service LighthouseService {
 
 message ManagerQuorumRequest {
     int64 rank = 1;
+    int64 step = 2;
 }
 
 message ManagerQuorumResponse {
-    string store_address = 1;
+    int64 quorum_id = 1;
+    string address = 2;
+    string store_address = 3;
 }
 
 message CheckpointRequest {
@@ -67,5 +72,5 @@ message CheckpointResponse {
 
 service ManagerService {
     rpc Quorum (ManagerQuorumRequest) returns (ManagerQuorumResponse);
-    rpc Checkpoint(CheckpointRequest) returns (CheckpointResponse);
+    //rpc Checkpoint(CheckpointRequest) returns (CheckpointResponse);
 }
