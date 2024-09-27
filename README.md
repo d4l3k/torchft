@@ -65,10 +65,12 @@ for i in range(1000):
 
 ## Building Python Extension
 
-This uses pyo3
+This uses pyo3+maturin to build the package.
+
+To install in editable mode w/ the Rust extensions you can use the normal pip install command:
 
 ```sh
-$ maturin develop
+$ pip install -e .
 ```
 
 ## Running Tests / Lint
