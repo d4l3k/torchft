@@ -51,6 +51,13 @@ pub struct LighthouseOpt {
     quorum_tick_ms: u64,
 }
 
+fn quorum_changed(a: &Vec<QuorumMember>, b: &Vec<QuorumMember>) -> bool {
+    let a_ids: Vec<&String> = a.iter().map(|p| &p.replica_id).collect();
+    let b_ids: Vec<&String> = b.iter().map(|p| &p.replica_id).collect();
+
+    return a_ids != b_ids;
+}
+
 impl Lighthouse {
     pub fn new(opt: LighthouseOpt) -> Arc<Self> {
         let (tx, _) = broadcast::channel(16);
@@ -121,18 +128,31 @@ impl Lighthouse {
             let quorum_met = self.quorum_valid().await;
             if quorum_met {
                 let mut state = self.state.lock().await;
+                let mut participants: Vec<QuorumMember> = state
+                    .participants
+                    .values()
+                    .map(|details| details.member.clone())
+                    .collect();
+                
+                // Sort by replica ID to get a consistent ordering across runs.
+                participants.sort_by_key(|p| p.replica_id.clone());
+
+                // only increment quorum ID if something about the quorum
+                // changed (members/addresses/etc)
+                if state.prev_quorum.is_none()
+                    || quorum_changed(&participants, &state.prev_quorum.as_ref().unwrap().participants)
+                {
+                    quorum_id += 1;
+                    info!("Detected quorum change, bumping quorum_id to {}", quorum_id);
+                }
+
                 let quorum = Quorum {
                     quorum_id: quorum_id,
-                    participants: state
-                        .participants
-                        .values()
-                        .map(|details| details.member.clone())
-                        .collect(),
+                    participants: participants,
                 };
 
                 info!("Quorum! {:?}", quorum);
 
-                quorum_id += 1;
                 state.prev_quorum = Some(quorum.clone());
                 state.participants.clear();
                 state.channel.send(quorum)?;

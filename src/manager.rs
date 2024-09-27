@@ -33,6 +33,8 @@ pub struct Manager {
 }
 
 pub async fn manager_client_new(addr: String) -> Result<ManagerServiceClient<Channel>> {
+    // TODO add retries + backoff so other nodes can start before the rank0 comes up
+
     info!("ManagerClient: establishing connection to {}", &addr);
     let conn = Endpoint::new(addr.clone())?
         .connect_timeout(Duration::from_secs(10))
@@ -68,7 +70,7 @@ impl Manager {
 
     pub async fn run(self: Arc<Self>) -> Result<()> {
         let bind = self.bind.parse()?;
-        info!("Manager listening on {}", bind);
+        info!("Manager {} listening on {}", self.replica_id, bind);
 
         Server::builder()
             .add_service(ManagerServiceServer::new(self))
@@ -78,6 +80,8 @@ impl Manager {
     }
 
     async fn lighthouse_client_new(&self) -> Result<LighthouseServiceClient<Channel>> {
+        info!("Manager: connecting to lighthouse at {}", &self.lighthouse_addr);
+
         let conn = Endpoint::new(self.lighthouse_addr.clone())?
             .connect_timeout(Duration::from_secs(10))
             .connect()
@@ -124,8 +128,10 @@ impl ManagerService for Arc<Manager> {
                 });
 
                 let response = client.quorum(request).await.unwrap();
-                info!("got lighthouse quorum");
                 let resp = response.into_inner();
+
+                info!("got lighthouse quorum {:?}", resp);
+
                 state
                     .channel
                     .send(
@@ -145,6 +151,14 @@ impl ManagerService for Arc<Manager> {
 
         let participants = &quorum.participants;
 
+        let mut replica_rank = 10000000000;
+        for (i, p) in participants.iter().enumerate() {
+            if p.replica_id == self.replica_id {
+                replica_rank = i;
+                break;
+            }
+        }
+
         let max_step = participants.iter().map(|p| p.step).max().unwrap();
         let max_participants: Vec<&QuorumMember> =
             participants.iter().filter(|p| p.step == max_step).collect();
@@ -155,6 +169,9 @@ impl ManagerService for Arc<Manager> {
             address: primary.address.clone(),
             store_address: primary.store_address.clone(),
             max_step: max_step,
+            num_max: max_participants.len() as i64,
+            replica_rank: replica_rank as i64,
+            replica_world: participants.len() as i64,
         };
 
         info!("returning quorum for rank {}", rank);

@@ -79,7 +79,7 @@ impl ManagerClient {
         })
     }
 
-    fn quorum(&mut self, rank: i64, step: i64) -> PyResult<(i64, String, String, i64)> {
+    fn quorum(&mut self, rank: i64, step: i64) -> PyResult<(i64, i64, i64, String, String, i64, i64)> {
         let request = tonic::Request::new(ManagerQuorumRequest {
             rank: rank,
             step: step,
@@ -91,9 +91,12 @@ impl ManagerClient {
         let resp = response.into_inner();
         Ok((
             resp.quorum_id,
+            resp.replica_rank,
+            resp.replica_world,
             resp.address,
             resp.store_address,
             resp.max_step,
+            resp.num_max,
         ))
     }
 }

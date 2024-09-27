@@ -1,11 +1,14 @@
 import sys
-
-sys.path.append(".")
-
-from python import Manager
+import logging
 
 import torch
 from torch import nn, optim
+
+# torchft import (TODO hack)
+sys.path.append(".")
+from python import Manager, ReconfigPGGloo
+
+logging.basicConfig(level=logging.INFO)
 
 device = "cpu"
 
@@ -13,7 +16,7 @@ m = nn.Linear(2, 3)
 
 optimizer = optim.AdamW(m.parameters())
 
-manager = Manager(None, None)
+manager = Manager(ReconfigPGGloo(), None, None)
 
 print(m)
 
@@ -29,7 +32,7 @@ for i in range(1000):
 
     loss.backward()
 
-    for p in optimizer.parameters():
+    for p in m.parameters():
         if p.grad is not None:
             manager.allreduce_grad(p.grad)
     
