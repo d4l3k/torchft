@@ -19,6 +19,7 @@ class Manager:
         store_port = int(os.environ["MASTER_PORT"])
         rank = int(os.environ["RANK"])
         world_size = int(os.environ["WORLD_SIZE"])
+        self._rank = rank
 
         self._store = TCPStore(
             host_name=store_addr, 
@@ -45,21 +46,19 @@ class Manager:
 
             self._store.set(MANAGER_ADDR_KEY, addr)
 
-        time.sleep(10)
-
         addr = self._store.get(MANAGER_ADDR_KEY).decode("utf-8")
         self._client = ManagerClient(addr)
 
         self._step = 0
 
     def allreduce_grad(self, tensor) -> None:
-        raise NotImplemented("allreduce_grad")
+        raise NotImplementedError("allreduce_grad")
 
     def step(self) -> None:
-        raise NotImplemented("step")
+        self._client.quorum(rank=self._rank, step=self._step)
 
     def should_commit(self) -> bool:
-        raise NotImplemented("should_commit")
+        raise NotImplementedError("should_commit")
 
     def load_state_dict(self, state_dict: Dict[str, int]) -> None:
         self._step = state_dict["step"]

@@ -100,10 +100,15 @@ impl Lighthouse {
             return false;
         }
 
+        // Quorum is valid at this point but lets wait for stragglers.
+
         if Instant::now().duration_since(first_joined)
             < Duration::from_millis(self.opt.join_timeout_ms)
         {
-            info!("No quorum, join timeout hasn't elapsed yet");
+            info!(
+                "Valid quorum with {} participants, waiting for stragglers due to join timeout",
+                state.participants.len()
+            );
             return false;
         }
 
@@ -124,6 +129,9 @@ impl Lighthouse {
                         .map(|details| details.member.clone())
                         .collect(),
                 };
+
+                info!("Quorum! {:?}", quorum);
+
                 quorum_id += 1;
                 state.prev_quorum = Some(quorum.clone());
                 state.participants.clear();
@@ -169,6 +177,9 @@ impl LighthouseService for Arc<Lighthouse> {
             .into_inner()
             .requester
             .ok_or_else(|| return Status::invalid_argument("missing requester"))?;
+
+        info!("got quorum request for replica {}", &requester.replica_id);
+
         let mut rx = {
             let mut state = self.state.lock().await;
             state.participants.insert(

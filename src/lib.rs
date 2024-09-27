@@ -5,13 +5,17 @@ pub mod manager;
 use std::sync::Arc;
 
 use anyhow::Result;
+use pyo3::exceptions::PyRuntimeError;
 use tokio::runtime::Runtime;
 use tokio::task::JoinHandle;
+use tonic::transport::Channel;
 
 pub mod torchftpb {
     tonic::include_proto!("torchft");
 }
 
+use crate::torchftpb::manager_service_client::ManagerServiceClient;
+use crate::torchftpb::ManagerQuorumRequest;
 use pyo3::prelude::*;
 
 #[pyclass]
@@ -48,16 +52,49 @@ impl Manager {
             handle: handle,
         }
     }
+
+    fn shutdown(&self) {
+        self.handle.abort();
+    }
 }
 
 #[pyclass]
-struct ManagerClient {}
+struct ManagerClient {
+    runtime: Runtime,
+    client: ManagerServiceClient<Channel>,
+}
 
 #[pymethods]
 impl ManagerClient {
     #[new]
-    fn new(addr: String) -> Self {
-        Self {}
+    fn new(addr: String) -> PyResult<Self> {
+        let runtime = Runtime::new().unwrap();
+        let client = runtime
+            .block_on(manager::manager_client_new(addr))
+            .map_err(|e| PyRuntimeError::new_err(e.to_string()))?;
+
+        Ok(Self {
+            runtime: runtime,
+            client: client,
+        })
+    }
+
+    fn quorum(&mut self, rank: i64, step: i64) -> PyResult<(i64, String, String, i64)> {
+        let request = tonic::Request::new(ManagerQuorumRequest {
+            rank: rank,
+            step: step,
+        });
+        let response = self
+            .runtime
+            .block_on(self.client.quorum(request))
+            .map_err(|e| PyRuntimeError::new_err(e.to_string()))?;
+        let resp = response.into_inner();
+        Ok((
+            resp.quorum_id,
+            resp.address,
+            resp.store_address,
+            resp.max_step,
+        ))
     }
 }
 

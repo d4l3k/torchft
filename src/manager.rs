@@ -11,6 +11,7 @@ use tonic::{Request, Response, Status};
 use tonic::transport::{Channel, Endpoint};
 
 use crate::torchftpb::lighthouse_service_client::LighthouseServiceClient;
+use crate::torchftpb::manager_service_client::ManagerServiceClient;
 use crate::torchftpb::{
     manager_service_server::{ManagerService, ManagerServiceServer},
     LighthouseQuorumRequest, ManagerQuorumRequest, ManagerQuorumResponse, Quorum, QuorumMember,
@@ -29,6 +30,15 @@ pub struct Manager {
     bind: String,
     world_size: u64,
     state: Mutex<ManagerState>,
+}
+
+pub async fn manager_client_new(addr: String) -> Result<ManagerServiceClient<Channel>> {
+    info!("ManagerClient: establishing connection to {}", &addr);
+    let conn = Endpoint::new(addr.clone())?
+        .connect_timeout(Duration::from_secs(10))
+        .connect()
+        .await?;
+    Ok(ManagerServiceClient::new(conn))
 }
 
 impl Manager {
@@ -135,11 +145,16 @@ impl ManagerService for Arc<Manager> {
 
         let participants = &quorum.participants;
 
-        let primary = &participants[rank as usize % participants.len()];
+        let max_step = participants.iter().map(|p| p.step).max().unwrap();
+        let max_participants: Vec<&QuorumMember> =
+            participants.iter().filter(|p| p.step == max_step).collect();
+
+        let primary = max_participants[rank as usize % max_participants.len()];
         let reply = ManagerQuorumResponse {
             quorum_id: quorum.quorum_id,
             address: primary.address.clone(),
             store_address: primary.store_address.clone(),
+            max_step: max_step,
         };
 
         info!("returning quorum for rank {}", rank);

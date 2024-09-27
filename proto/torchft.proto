@@ -60,6 +60,7 @@ message ManagerQuorumResponse {
     int64 quorum_id = 1;
     string address = 2;
     string store_address = 3;
+    int64 max_step = 4;
 }
 
 message CheckpointRequest {
