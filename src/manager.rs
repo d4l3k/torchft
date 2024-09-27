@@ -37,7 +37,7 @@ impl Manager {
         lighthouse_addr: String,
         address: String,
         bind: String,
-        store_address: String,
+        store_addr: String,
         world_size: u64,
     ) -> Arc<Self> {
         let (tx, _) = broadcast::channel(16);
@@ -46,7 +46,7 @@ impl Manager {
             replica_id: replica_id,
             lighthouse_addr: lighthouse_addr,
             address: address,
-            store_address: store_address,
+            store_address: store_addr,
             bind: bind,
             world_size: world_size,
             state: Mutex::new(ManagerState {
