@@ -75,7 +75,17 @@ message CheckpointAddressResponse {
     string checkpoint_server_address = 1;
 }
 
+message ShouldCommitRequest {
+    bool should_commit = 1;
+    int64 rank = 2;
+    int64 step = 3;
+}
+message ShouldCommitResponse {
+    bool should_commit = 1;
+}
+
 service ManagerService {
     rpc Quorum (ManagerQuorumRequest) returns (ManagerQuorumResponse);
     rpc CheckpointAddress(CheckpointAddressRequest) returns (CheckpointAddressResponse);
+    rpc ShouldCommit(ShouldCommitRequest) returns (ShouldCommitResponse);
 }

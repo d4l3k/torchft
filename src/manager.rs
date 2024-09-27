@@ -16,13 +16,18 @@ use crate::torchftpb::manager_service_client::ManagerServiceClient;
 use crate::torchftpb::{
     manager_service_server::{ManagerService, ManagerServiceServer},
     CheckpointAddressRequest, CheckpointAddressResponse, LighthouseQuorumRequest,
-    ManagerQuorumRequest, ManagerQuorumResponse, Quorum, QuorumMember,
+    ManagerQuorumRequest, ManagerQuorumResponse, Quorum, QuorumMember, ShouldCommitRequest,
+    ShouldCommitResponse,
 };
 
 struct ManagerState {
     channel: broadcast::Sender<Quorum>,
     participants: u64,
     checkpoint_servers: HashMap<i64, String>,
+
+    should_commit_channel: broadcast::Sender<bool>,
+    should_commit_failures: i64,
+    should_commit_count: i64,
 }
 
 pub struct Manager {
@@ -56,6 +61,7 @@ impl Manager {
         world_size: u64,
     ) -> Arc<Self> {
         let (tx, _) = broadcast::channel(16);
+        let (should_commit_tx, _) = broadcast::channel(16);
 
         Arc::new(Self {
             replica_id: replica_id,
@@ -68,6 +74,10 @@ impl Manager {
                 channel: tx,
                 participants: 0,
                 checkpoint_servers: HashMap::new(),
+
+                should_commit_channel: should_commit_tx,
+                should_commit_count: 0,
+                should_commit_failures: 0,
             }),
         })
     }
@@ -209,6 +219,42 @@ impl ManagerService for Arc<Manager> {
 
         let reply = CheckpointAddressResponse {
             checkpoint_server_address: address.clone(),
+        };
+        Ok(Response::new(reply))
+    }
+
+    async fn should_commit(
+        &self,
+        request: Request<ShouldCommitRequest>,
+    ) -> Result<Response<ShouldCommitResponse>, Status> {
+        let req = request.into_inner();
+
+        let mut rx = {
+            let mut state = self.state.lock().await;
+
+            if !req.should_commit {
+                state.should_commit_failures += 1;
+            }
+            state.should_commit_count += 1;
+
+            let rx = state.should_commit_channel.subscribe();
+
+            if state.should_commit_count == self.world_size as i64 {
+                state
+                    .should_commit_channel
+                    .send(state.should_commit_failures == 0)
+                    .map_err(|e| Status::from_error(e.into()))?;
+            }
+            rx
+        };
+
+        let should_commit = rx
+            .recv()
+            .await
+            .map_err(|e| Status::internal(e.to_string()))?;
+
+        let reply = ShouldCommitResponse {
+            should_commit: should_commit,
         };
         Ok(Response::new(reply))
     }
