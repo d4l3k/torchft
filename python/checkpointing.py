@@ -14,18 +14,27 @@ class CheckpointServer:
     def __init__(self, state_dict) -> None:
         self._checkpoint_lock = threading.Lock()
         self._disallowed = False
+        self._step = -1
 
         ckpt_server = self
         class RequestHandler(BaseHTTPRequestHandler):
             def do_GET(self):
-                """Handle GET requests."""
-                self.send_response(200)
-                self.send_header('Content-type', 'tensor') # TODO: correct mime type
-                self.end_headers()
-
-                # TODO: check step for safety
-                
                 with ckpt_server._checkpoint_lock:
+                    step = ckpt_server._step
+
+                    if self.path != f"/checkpoint/{step}":
+                        self.send_response(400)
+                        self.send_header('Content-type', 'text/plain')
+                        self.end_headers()
+
+                        self.wfile.write(f"invalid checkpoint requested, serving {step} but got {self.path}".encode())
+
+                        return
+
+                    self.send_response(200)
+                    self.send_header('Content-type', 'tensor') # TODO: correct mime type
+                    self.end_headers()
+
                     sd = state_dict()
 
                     torch.save(sd, self.wfile)
@@ -52,7 +61,7 @@ class CheckpointServer:
 
     def address(self) -> str:
         port = self._server.socket.getsockname()[1]
-        return f"http://{socket.gethostname()}:{port}"
+        return f"http://{socket.gethostname()}:{port}/checkpoint/{self._step}"
 
 
     def _serve(self) -> None:
@@ -66,7 +75,9 @@ class CheckpointServer:
             self._disallowed = True
             self._checkpoint_lock.acquire()
 
-    def allow_checkpoint(self) -> None:
+    def allow_checkpoint(self, step: int) -> None:
+        self._step = step
+
         if self._disallowed:
             self._disallowed = False
             self._checkpoint_lock.release()

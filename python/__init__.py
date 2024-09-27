@@ -91,7 +91,10 @@ class Manager:
 
     def step(self) -> None:
         self._step += 1
-        self._ckpt_server.allow_checkpoint()
+        self._ckpt_server.allow_checkpoint(self._step)
+
+        # TODO: we should really be wrapping this whole section in a try-except
+        # block to allow gracefully recovering from issues in process.
 
         (
             quorum_id,
