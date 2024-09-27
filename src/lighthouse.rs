@@ -187,3 +187,85 @@ impl LighthouseService for Arc<Lighthouse> {
         Ok(Response::new(reply))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::ops::Sub;
+
+    fn lighthouse_test_new() -> Arc<Lighthouse> {
+        let opt = LighthouseOpt {
+            min_replicas: 1,
+            bind: "n/a".to_string(),
+            join_timeout_msec: 60 * 60 * 1000, // 1hr
+        };
+        Arc::new(Lighthouse::new(opt))
+    }
+
+    #[tokio::test]
+    async fn test_quorum_join_timeout() {
+        let lighthouse = lighthouse_test_new();
+        assert!(!lighthouse.quorum_valid().await);
+
+        {
+            let mut state = lighthouse.state.lock().await;
+            state.participants.insert(
+                "a".to_string(),
+                QuorumMemberDetails {
+                    joined: Instant::now(),
+                    member: QuorumMember {
+                        replica_id: "a".to_string(),
+                        address: "".to_string(),
+                        step: 1,
+                    },
+                },
+            );
+        }
+
+        assert!(!lighthouse.quorum_valid().await);
+
+        {
+            let mut state = lighthouse.state.lock().await;
+            state.participants.get_mut("a").unwrap().joined =
+                Instant::now().sub(Duration::from_secs(10 * 60 * 60));
+        }
+
+        assert!(lighthouse.quorum_valid().await);
+    }
+
+    #[tokio::test]
+    async fn test_quorum_fast_prev_quorum() {
+        let lighthouse = lighthouse_test_new();
+        assert!(!lighthouse.quorum_valid().await);
+
+        {
+            let mut state = lighthouse.state.lock().await;
+            state.participants.insert(
+                "a".to_string(),
+                QuorumMemberDetails {
+                    joined: Instant::now(),
+                    member: QuorumMember {
+                        replica_id: "a".to_string(),
+                        address: "".to_string(),
+                        step: 1,
+                    },
+                },
+            );
+        }
+
+        assert!(!lighthouse.quorum_valid().await);
+
+        {
+            let mut state = lighthouse.state.lock().await;
+            state.prev_quorum = Some(Quorum {
+                participants: vec![QuorumMember {
+                    replica_id: "a".to_string(),
+                    address: "".to_string(),
+                    step: 1,
+                }],
+            });
+        }
+
+        assert!(lighthouse.quorum_valid().await);
+    }
+}
