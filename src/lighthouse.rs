@@ -41,11 +41,14 @@ pub struct LighthouseOpt {
     #[structopt(long = "bind", default_value = "[::]:19510")]
     bind: String,
 
-    #[structopt(long = "join_timeout_msec", default_value = "60000")]
-    join_timeout_msec: u64,
+    #[structopt(long = "join_timeout_ms", default_value = "60000")]
+    join_timeout_ms: u64,
 
     #[structopt(long = "min_replicas")]
     min_replicas: u64,
+
+    #[structopt(long = "quorum_tick_ms", default_value = "100")]
+    quorum_tick_ms: u64,
 }
 
 impl Lighthouse {
@@ -98,7 +101,7 @@ impl Lighthouse {
         }
 
         if Instant::now().duration_since(first_joined)
-            < Duration::from_millis(self.opt.join_timeout_msec)
+            < Duration::from_millis(self.opt.join_timeout_ms)
         {
             info!("No quorum, join timeout hasn't elapsed yet");
             return false;
@@ -124,7 +127,7 @@ impl Lighthouse {
                 state.channel.send(quorum)?;
             }
 
-            sleep(Duration::from_millis(100)).await;
+            sleep(Duration::from_millis(self.opt.quorum_tick_ms)).await;
         }
     }
 
@@ -193,13 +196,26 @@ mod tests {
     use super::*;
     use std::ops::Sub;
 
+    use tonic::transport::{Channel, Endpoint};
+
+    use crate::torchftpb::lighthouse_service_client::LighthouseServiceClient;
+
     fn lighthouse_test_new() -> Arc<Lighthouse> {
         let opt = LighthouseOpt {
             min_replicas: 1,
-            bind: "n/a".to_string(),
-            join_timeout_msec: 60 * 60 * 1000, // 1hr
+            bind: "0.0.0.0:29510".to_string(),
+            join_timeout_ms: 60 * 60 * 1000, // 1hr
+            quorum_tick_ms: 10,
         };
         Lighthouse::new(opt)
+    }
+
+    async fn lighthouse_client_new(addr: String) -> Result<LighthouseServiceClient<Channel>> {
+        let conn = Endpoint::new(addr)?
+            .connect_timeout(Duration::from_secs(10))
+            .connect()
+            .await?;
+        Ok(LighthouseServiceClient::new(conn))
     }
 
     #[tokio::test]
@@ -267,5 +283,36 @@ mod tests {
         }
 
         assert!(lighthouse.quorum_valid().await);
+    }
+
+    #[tokio::test]
+    async fn test_lighthouse_e2e() {
+        let opt = LighthouseOpt {
+            min_replicas: 1,
+            bind: "0.0.0.0:29510".to_string(),
+            join_timeout_ms: 1,
+            quorum_tick_ms: 10,
+        };
+        let lighthouse = Lighthouse::new(opt);
+
+        let lighthouse_task = tokio::spawn(lighthouse.clone().run());
+
+        let mut client = lighthouse_client_new("http://localhost:29510".to_string())
+            .await
+            .unwrap();
+
+        let request = tonic::Request::new(LighthouseQuorumRequest {
+            requester: Some(QuorumMember {
+                replica_id: "foo".to_string(),
+                address: "".to_string(),
+                step: 10,
+            }),
+        });
+
+        let response = client.quorum(request).await.unwrap();
+        let quorum = response.into_inner().quorum.unwrap();
+        assert_eq!(quorum.participants.len(), 1);
+
+        lighthouse_task.abort();
     }
 }
