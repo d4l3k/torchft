@@ -29,6 +29,7 @@ struct Manager {
 impl Manager {
     #[new]
     fn new(
+        py: Python<'_>,
         replica_id: String,
         lighthouse_addr: String,
         address: String,
@@ -36,25 +37,29 @@ impl Manager {
         store_addr: String,
         world_size: u64,
     ) -> Self {
-        let runtime = Runtime::new().unwrap();
-        let manager = manager::Manager::new(
-            replica_id,
-            lighthouse_addr,
-            address,
-            bind,
-            store_addr,
-            world_size,
-        );
-        let handle = runtime.spawn(manager.clone().run());
-        Self {
-            runtime: runtime,
-            manager: manager,
-            handle: handle,
-        }
+        py.allow_threads(move || {
+            let runtime = Runtime::new().unwrap();
+            let manager = manager::Manager::new(
+                replica_id,
+                lighthouse_addr,
+                address,
+                bind,
+                store_addr,
+                world_size,
+            );
+            let handle = runtime.spawn(manager.clone().run());
+            Self {
+                runtime: runtime,
+                manager: manager,
+                handle: handle,
+            }
+        })
     }
 
-    fn shutdown(&self) {
-        self.handle.abort();
+    fn shutdown(&self, py: Python<'_>) {
+        py.allow_threads(move || {
+            self.handle.abort();
+        })
     }
 }
 
@@ -67,53 +72,60 @@ struct ManagerClient {
 #[pymethods]
 impl ManagerClient {
     #[new]
-    fn new(addr: String) -> PyResult<Self> {
-        let runtime = Runtime::new().unwrap();
-        let client = runtime
-            .block_on(manager::manager_client_new(addr))
-            .map_err(|e| PyRuntimeError::new_err(e.to_string()))?;
+    fn new(py: Python<'_>, addr: String) -> PyResult<Self> {
+        py.allow_threads(move || {
+            let runtime = Runtime::new().unwrap();
+            let client = runtime
+                .block_on(manager::manager_client_new(addr))
+                .map_err(|e| PyRuntimeError::new_err(e.to_string()))?;
 
-        Ok(Self {
-            runtime: runtime,
-            client: client,
+            Ok(Self {
+                runtime: runtime,
+                client: client,
+            })
         })
     }
 
     fn quorum(
         &mut self,
+        py: Python<'_>,
         rank: i64,
         step: i64,
         checkpoint_server_addr: String,
     ) -> PyResult<(i64, i64, i64, String, String, i64, i64)> {
-        let request = tonic::Request::new(ManagerQuorumRequest {
-            rank: rank,
-            step: step,
-            checkpoint_server_addr: checkpoint_server_addr,
-        });
-        let response = self
-            .runtime
-            .block_on(self.client.quorum(request))
-            .map_err(|e| PyRuntimeError::new_err(e.to_string()))?;
-        let resp = response.into_inner();
-        Ok((
-            resp.quorum_id,
-            resp.replica_rank,
-            resp.replica_world,
-            resp.address,
-            resp.store_address,
-            resp.max_step,
-            resp.num_max,
-        ))
+        py.allow_threads(move || {
+            let request = tonic::Request::new(ManagerQuorumRequest {
+                rank: rank,
+                step: step,
+                checkpoint_server_addr: checkpoint_server_addr,
+            });
+            let response = self
+                .runtime
+                .block_on(self.client.quorum(request))
+                .map_err(|e| PyRuntimeError::new_err(e.to_string()))?;
+            let resp = response.into_inner();
+            Ok((
+                resp.quorum_id,
+                resp.replica_rank,
+                resp.replica_world,
+                resp.address,
+                resp.store_address,
+                resp.max_step,
+                resp.num_max,
+            ))
+        })
     }
 
-    fn checkpoint_address(&mut self, rank: i64) -> PyResult<String> {
-        let request = tonic::Request::new(CheckpointAddressRequest { rank: rank });
-        let response = self
-            .runtime
-            .block_on(self.client.checkpoint_address(request))
-            .map_err(|e| PyRuntimeError::new_err(e.to_string()))?;
-        let resp = response.into_inner();
-        Ok(resp.checkpoint_server_address)
+    fn checkpoint_address(&mut self, py: Python<'_>, rank: i64) -> PyResult<String> {
+        py.allow_threads(move || {
+            let request = tonic::Request::new(CheckpointAddressRequest { rank: rank });
+            let response = self
+                .runtime
+                .block_on(self.client.checkpoint_address(request))
+                .map_err(|e| PyRuntimeError::new_err(e.to_string()))?;
+            let resp = response.into_inner();
+            Ok(resp.checkpoint_server_address)
+        })
     }
 }
 
