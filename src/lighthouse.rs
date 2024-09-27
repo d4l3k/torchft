@@ -49,16 +49,16 @@ pub struct LighthouseOpt {
 }
 
 impl Lighthouse {
-    pub fn new(opt: LighthouseOpt) -> Self {
+    pub fn new(opt: LighthouseOpt) -> Arc<Self> {
         let (tx, _) = broadcast::channel(16);
-        Self {
+        Arc::new(Self {
             state: Mutex::new(State {
                 participants: HashMap::new(),
                 channel: tx,
                 prev_quorum: None,
             }),
             opt: opt,
-        }
+        })
     }
 
     async fn quorum_valid(&self) -> bool {
@@ -199,7 +199,7 @@ mod tests {
             bind: "n/a".to_string(),
             join_timeout_msec: 60 * 60 * 1000, // 1hr
         };
-        Arc::new(Lighthouse::new(opt))
+        Lighthouse::new(opt)
     }
 
     #[tokio::test]

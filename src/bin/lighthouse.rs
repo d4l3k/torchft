@@ -1,4 +1,3 @@
-use std::sync::Arc;
 use structopt::StructOpt;
 use torchft::lighthouse::{Lighthouse, LighthouseOpt};
 
@@ -12,7 +11,7 @@ async fn main() {
         .unwrap();
 
     let opt = LighthouseOpt::from_args();
-    let lighthouse = Arc::new(Lighthouse::new(opt));
+    let lighthouse = Lighthouse::new(opt);
 
     lighthouse.run().await.unwrap();
 }
