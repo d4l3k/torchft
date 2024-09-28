@@ -2,10 +2,12 @@ pub mod coordinator;
 pub mod lighthouse;
 pub mod manager;
 
+use std::env;
 use std::sync::Arc;
 
 use anyhow::Result;
 use pyo3::exceptions::PyRuntimeError;
+use structopt::StructOpt;
 use tokio::runtime::Runtime;
 use tokio::task::JoinHandle;
 use tonic::transport::Channel;
@@ -129,6 +131,31 @@ impl ManagerClient {
     }
 }
 
+fn reset_python_signals(py: Python<'_>) -> PyResult<()> {
+    // clear python signal handlers
+    // signal.signal(signal.SIGINT, signal.SIG_DFL)
+    let signal = py.import_bound("signal")?;
+    let set_signal = signal.getattr("signal")?;
+    let args = (signal.getattr("SIGINT")?, signal.getattr("SIG_DFL")?);
+    set_signal.call1(args)?;
+
+    Ok(())
+}
+
+#[pyfunction]
+fn lighthouse_main(py: Python<'_>) {
+    reset_python_signals(py).unwrap();
+
+    let mut args = env::args();
+    args.next(); // discard binary arg
+    let opt = lighthouse::LighthouseOpt::from_iter(args);
+    let lighthouse = lighthouse::Lighthouse::new(opt);
+
+    let rt = Runtime::new().unwrap();
+
+    rt.block_on(lighthouse.run()).unwrap();
+}
+
 #[pymodule]
 fn torchft(m: &Bound<'_, PyModule>) -> PyResult<()> {
     // setup logging on import
@@ -141,6 +168,7 @@ fn torchft(m: &Bound<'_, PyModule>) -> PyResult<()> {
 
     m.add_class::<Manager>()?;
     m.add_class::<ManagerClient>()?;
+    m.add_function(wrap_pyfunction!(lighthouse_main, m)?)?;
 
     Ok(())
 }

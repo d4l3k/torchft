@@ -49,8 +49,8 @@ class Manager:
         if rank == 0:
             hostname = socket.gethostname()
             addr = f"http://{hostname}:{port}"
-            bind = f"0.0.0.0:{port}"
-            lighthouse_addr = os.environ["TORCH_LIGHTHOUSE"]
+            bind = f"[::]:{port}"
+            lighthouse_addr = os.environ["TORCHFT_LIGHTHOUSE"]
 
             replica_id = str(uuid.uuid4())
             self._manager = _Manager(

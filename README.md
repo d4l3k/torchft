@@ -8,12 +8,26 @@ that can be used in a standard PyTorch training loop.
 This allows for membership changes at the training step granularity which can
 greatly improve efficiency by avoiding stop the world training on errors.
 
+## Installation
+
+```sh
+$ pip install .
+```
+
+This uses pyo3+maturin to build the package, you'll need maturin installed.
+
+To install in editable mode w/ the Rust extensions you can use the normal pip install command:
+
+```sh
+$ pip install -e .
+```
+
 ## Lighthouse
 
 You can start a lighthouse server by running:
 
 ```sh
-$ RUST_BACKTRACE=1 cargo run --bin lighthouse -- --min_replicas 1 --quorum_tick_ms 100 --join_timeout_ms 1000
+$ RUST_BACKTRACE=1 torchft_lighthouse --min_replicas 1 --quorum_tick_ms 100 --join_timeout_ms 1000
 ```
 
 ## Example Training Loop
@@ -23,7 +37,7 @@ See [train.py](./train.py) for the full example.
 Invoke with:
 
 ```sh
-$ TORCHFT_MANAGER_PORT=29512 TORCH_LIGHTHOUSE=http://localhost:19510 torchrun --master_port 29501 --nnodes 1 --nproc_per_node 1 train.py
+$ TORCHFT_MANAGER_PORT=29512 TORCHFT_LIGHTHOUSE=http://localhost:29510 torchrun --master_port 29501 --nnodes 1 --nproc_per_node 1 train.py
 ```
 
 train.py:
@@ -61,16 +75,6 @@ for i in range(1000):
     
     if manager.should_commit():
         optimizer.step()
-```
-
-## Building Python Extension
-
-This uses pyo3+maturin to build the package.
-
-To install in editable mode w/ the Rust extensions you can use the normal pip install command:
-
-```sh
-$ pip install -e .
 ```
 
 ## Running Tests / Lint

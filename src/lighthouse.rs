@@ -38,7 +38,7 @@ pub struct Lighthouse {
 #[structopt()]
 pub struct LighthouseOpt {
     // bind is the address to bind the server to.
-    #[structopt(long = "bind", default_value = "[::]:19510")]
+    #[structopt(long = "bind", default_value = "[::]:29510")]
     bind: String,
 
     #[structopt(long = "join_timeout_ms", default_value = "60000")]
