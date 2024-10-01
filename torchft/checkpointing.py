@@ -86,3 +86,6 @@ class CheckpointServer:
         if self._disallowed:
             self._disallowed = False
             self._checkpoint_lock.release()
+
+    def shutdown(self) -> None:
+        self._server.shutdown()
