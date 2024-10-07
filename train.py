@@ -12,7 +12,6 @@ device = "cpu"
 
 m = nn.Linear(2, 3)
 
-optimizer = optim.AdamW(m.parameters())
 
 manager = Manager(
     pg=ReconfigPGGloo(),
@@ -20,13 +19,14 @@ manager = Manager(
     state_dict=m.state_dict,
 )
 
+optimizer = manager.wrap_optimizer(optim.AdamW(m.parameters()))
+
 print(m)
 
 for i in range(1000):
-    manager.step()
-
     batch = torch.rand(2, 2, device=device)
 
+    # must be called at the beginning of each train loop
     optimizer.zero_grad()
 
     out = m(batch)
@@ -38,5 +38,5 @@ for i in range(1000):
         if p.grad is not None:
             manager.allreduce_grad(p.grad)
 
-    if manager.should_commit():
-        optimizer.step()
+    # must be called at the end of the train loop
+    optimizer.step()

@@ -6,7 +6,7 @@ if TYPE_CHECKING:
     from torchft.manager import Manager
 
 
-class FTOptimizer(Optimizer):
+class OptimizerWrapper(Optimizer):
     def __init__(self, manager: "Manager", optim: Optimizer) -> None:
         self.optim = optim
         self.manager = manager
@@ -21,6 +21,7 @@ class FTOptimizer(Optimizer):
         return self.optim.state_dict()
 
     def zero_grad(self, set_to_none: bool = True) -> None:
+        self.manager.step()
         self.optim.zero_grad(set_to_none)
 
     def step(self, closure: Optional[object] = None) -> None:
