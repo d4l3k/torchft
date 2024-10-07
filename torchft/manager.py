@@ -6,11 +6,14 @@ import time
 import logging
 
 from torch.distributed import TCPStore, PrefixStore
+from torch.optim import Optimizer
 
-from .torchft import Manager as _Manager, ManagerClient
-from .checkpointing import CheckpointServer
+# pyre-fixme[21]: can't find rust module
+from torchft.torchft import Manager as _Manager, ManagerClient
+from torchft.optim import FTOptimizer
+from torchft.checkpointing import CheckpointServer
 
-logger = logging.getLogger(__name__)
+logger: logging.Logger = logging.getLogger(__name__)
 
 MANAGER_ADDR_KEY: str = "manager_addr"
 MANAGER_DEFAULT_PORT: int = int(os.environ.get("TORCHFT_MANAGER_PORT", 29511))
@@ -53,6 +56,7 @@ class Manager:
             lighthouse_addr = os.environ["TORCHFT_LIGHTHOUSE"]
 
             replica_id = str(uuid.uuid4())
+            # pyre-fixme[16]: can't find rust module
             self._manager = _Manager(
                 replica_id=replica_id,
                 lighthouse_addr=lighthouse_addr,
@@ -65,10 +69,13 @@ class Manager:
             self._store.set(MANAGER_ADDR_KEY, addr)
 
         addr = self._store.get(MANAGER_ADDR_KEY).decode("utf-8")
+        # pyre-fixme[16]: can't find rust module
         self._client = ManagerClient(addr)
 
         self._step = 0
         self._quorum_id = -1
+        self._errored = False
+        self._healing = False
 
     def allreduce_grad(self, tensor) -> None:
         if self._errored:
@@ -126,6 +133,7 @@ class Manager:
             logger.info(f"detected behind step={self._step}, max_step={max_step}")
 
             logger.info(f"fetching checkpoint server address from {address}")
+            # pyre-fixme[16]: can't find rust module
             primary_client = ManagerClient(address)
             checkpoint_server_address = primary_client.checkpoint_address(self._rank)
 
@@ -147,3 +155,6 @@ class Manager:
 
     def state_dict(self) -> Dict[str, int]:
         return {"step": self._step}
+
+    def wrap_optimizer(self, optim: Optimizer) -> Optimizer:
+        return FTOptimizer(optim)

@@ -1,5 +1,6 @@
 from abc import ABC
 
+# pyre-fixme[21]: no attribute ProcessGroupGloo
 from torch.distributed import ProcessGroupGloo
 
 
@@ -15,10 +16,11 @@ class ReconfigPGGloo(ReconfigPG):
     """
 
     def __init__(self) -> None:
-        pass
+        self._pg = None
 
     def configure(self, store, rank: int, world_size: int) -> None:
         # TODO: set lower timeout
+        # pyre-fixme[16]: no attribute ProcessGroupGloo
         self._pg = ProcessGroupGloo(store, rank, world_size)
 
     def allreduce(self, tensor) -> None:

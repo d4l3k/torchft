@@ -1,0 +1,580 @@
+2024-10-06 23:03:54,285 [PID 378191] INFO No binary specified, looking for `pyre.bin` in PATH
+2024-10-06 23:03:54,286 [PID 378191] INFO Pyre binary is located at `/home/rice/venvs/torchft/bin/pyre.bin`
+2024-10-06 23:03:54,288 [PID 378191] INFO Could not determine the number of Pyre workers from configuration. Auto-set the value to 7.
+2024-10-06 23:03:54,293 [PID 378191] INFO No typeshed specified, looking for it...
+2024-10-06 23:03:54,294 [PID 378191] INFO Found: `/home/rice/venvs/torchft/lib/pyre_check/typeshed`
+2024-10-06 23:03:54,295 [PID 378191] INFO Writing arguments into /tmp/pyre_arguments_6gpgr9st.json...
+2024-10-06 23:03:54,295 [PID 378191] DEBUG Arguments:
+{
+  "source_paths": {
+    "kind": "simple",
+    "paths": [
+      "/home/rice/Developer/torchft$torchft"
+    ]
+  },
+  "search_paths": [
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$idna",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$numpy",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$typeguard",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$black",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$click",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$sympy",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$pluggy",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$torch",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$dataclasses_json",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$filelock",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$iniconfig",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$testslide",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$packaging",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$pytest",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$mypy",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$_pytest",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$certifi",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$pip",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$platformdirs",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$markupsafe",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$importlib_metadata",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$docstring_parser",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$pathspec",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$libcst",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$marshmallow",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$charset_normalizer",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$jinja2",
+    "/home/rice/venvs/torchft/lib/pyre_check/typeshed/stdlib",
+    "/home/rice/venvs/torchft/lib/pyre_check/typeshed/stubs/ExifRead",
+    "/home/rice/venvs/torchft/lib/pyre_check/typeshed/stubs/Pillow",
+    "/home/rice/venvs/torchft/lib/pyre_check/typeshed/stubs/PyMySQL",
+    "/home/rice/venvs/torchft/lib/pyre_check/typeshed/stubs/PyYAML",
+    "/home/rice/venvs/torchft/lib/pyre_check/typeshed/stubs/aiofiles",
+    "/home/rice/venvs/torchft/lib/pyre_check/typeshed/stubs/boto",
+    "/home/rice/venvs/torchft/lib/pyre_check/typeshed/stubs/chevron",
+    "/home/rice/venvs/torchft/lib/pyre_check/typeshed/stubs/colorama",
+    "/home/rice/venvs/torchft/lib/pyre_check/typeshed/stubs/ldap3",
+    "/home/rice/venvs/torchft/lib/pyre_check/typeshed/stubs/mysqlclient",
+    "/home/rice/venvs/torchft/lib/pyre_check/typeshed/stubs/paramiko",
+    "/home/rice/venvs/torchft/lib/pyre_check/typeshed/stubs/psycopg2",
+    "/home/rice/venvs/torchft/lib/pyre_check/typeshed/stubs/pycurl",
+    "/home/rice/venvs/torchft/lib/pyre_check/typeshed/stubs/python-dateutil",
+    "/home/rice/venvs/torchft/lib/pyre_check/typeshed/stubs/pytz",
+    "/home/rice/venvs/torchft/lib/pyre_check/typeshed/stubs/regex",
+    "/home/rice/venvs/torchft/lib/pyre_check/typeshed/stubs/requests",
+    "/home/rice/venvs/torchft/lib/pyre_check/typeshed/stubs/retry",
+    "/home/rice/venvs/torchft/lib/pyre_check/typeshed/stubs/tqdm",
+    "/home/rice/venvs/torchft/lib/pyre_check/typeshed/stubs/ujson"
+  ],
+  "excludes": [],
+  "checked_directory_allowlist": [
+    "/home/rice/Developer/torchft/torchft"
+  ],
+  "checked_directory_blocklist": [],
+  "extensions": [],
+  "log_path": "/home/rice/Developer/torchft/.pyre",
+  "global_root": "/home/rice/Developer/torchft",
+  "debug": false,
+  "python_version": {
+    "major": 3,
+    "minor": 12,
+    "micro": 4
+  },
+  "shared_memory": {},
+  "parallel": true,
+  "number_of_workers": 7,
+  "additional_logging_sections": [],
+  "show_error_traces": false,
+  "strict": false
+}
+2024-10-06 23:03:54,358 [PID 378191] INFO  Initializing shared memory (heap_size: 8589934592, dep_table_pow: 1, hash_table_pow: 26)
+2024-10-06 23:03:54,369 [PID 378191] INFO  Building module tracker...
+2024-10-06 23:03:55,153 [PID 378191] PERFORMANCE  Module tracker built: 0.781s
+2024-10-06 23:03:55,316 [PID 378191] PERFORMANCE  Full environment built: 0.945s
+2024-10-06 23:03:55,317 [PID 378191] INFO  Collecting all definitions...
+2024-10-06 23:03:55,469 [PID 378191] PERFORMANCE  Collected definitions (defines: 34): 0.154s
+2024-10-06 23:03:55,470 [PID 378191] INFO  Checking 34 functions...
+2024-10-06 23:03:55,795 [PID 378191] INFO  Processed 3 of 34 functions
+2024-10-06 23:03:55,876 [PID 378191] INFO  Processed 6 of 34 functions
+2024-10-06 23:03:56,769 [PID 378191] INFO  Processed 9 of 34 functions
+2024-10-06 23:03:56,902 [PID 378191] INFO  Processed 12 of 34 functions
+2024-10-06 23:03:56,953 [PID 378191] INFO  Processed 15 of 34 functions
+2024-10-06 23:03:57,035 [PID 378191] INFO  Processed 18 of 34 functions
+2024-10-06 23:03:57,035 [PID 378191] INFO  Processed 19 of 34 functions
+2024-10-06 23:03:57,046 [PID 378191] INFO  Processed 22 of 34 functions
+2024-10-06 23:03:57,087 [PID 378191] INFO  Processed 25 of 34 functions
+2024-10-06 23:03:57,148 [PID 378191] INFO  Processed 28 of 34 functions
+2024-10-06 23:03:57,149 [PID 378191] INFO  Processed 31 of 34 functions
+2024-10-06 23:03:57,159 [PID 378191] INFO  Processed 34 of 34 functions
+2024-10-06 23:03:57,160 [PID 378191] PERFORMANCE  Check_TypeCheck: 1.697s
+2024-10-06 23:03:57,160 [PID 378191] MEMORY  Shared memory size post-typecheck (size: 3)
+2024-10-06 23:03:57,160 [PID 378191] INFO  Postprocessing 6 sources...
+2024-10-06 23:03:57,232 [PID 378191] INFO  Postprocessed 1 of 6 sources
+2024-10-06 23:03:57,232 [PID 378191] INFO  Postprocessed 2 of 6 sources
+2024-10-06 23:03:57,232 [PID 378191] INFO  Postprocessed 3 of 6 sources
+2024-10-06 23:03:57,232 [PID 378191] INFO  Postprocessed 4 of 6 sources
+2024-10-06 23:03:57,233 [PID 378191] INFO  Postprocessed 5 of 6 sources
+2024-10-06 23:03:57,243 [PID 378191] INFO  Postprocessed 6 of 6 sources
+2024-10-06 23:03:57,243 [PID 378191] PERFORMANCE  Check_Postprocessing: 0.083s
+2024-10-06 23:03:57,243 [PID 378191] PERFORMANCE  Check (request kind: FullCheck): 2.879s
+2024-10-06 23:03:57,295 [PID 378191] ERROR Found 6 type errors!
+2024-10-06 23:04:16,528 [PID 378262] INFO No binary specified, looking for `pyre.bin` in PATH
+2024-10-06 23:04:16,529 [PID 378262] INFO Pyre binary is located at `/home/rice/venvs/torchft/bin/pyre.bin`
+2024-10-06 23:04:16,531 [PID 378262] INFO Could not determine the number of Pyre workers from configuration. Auto-set the value to 7.
+2024-10-06 23:04:16,536 [PID 378262] INFO No typeshed specified, looking for it...
+2024-10-06 23:04:16,536 [PID 378262] INFO Found: `/home/rice/venvs/torchft/lib/pyre_check/typeshed`
+2024-10-06 23:04:16,537 [PID 378262] INFO Writing arguments into /tmp/pyre_arguments_4j_dvm0c.json...
+2024-10-06 23:04:16,538 [PID 378262] DEBUG Arguments:
+{
+  "source_paths": {
+    "kind": "simple",
+    "paths": [
+      "/home/rice/Developer/torchft$torchft"
+    ]
+  },
+  "search_paths": [
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$pip",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$charset_normalizer",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$filelock",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$sympy",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$_pytest",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$black",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$platformdirs",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$libcst",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$iniconfig",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$click",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$jinja2",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$pathspec",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$pluggy",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$mypy",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$marshmallow",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$idna",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$markupsafe",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$torch",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$docstring_parser",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$testslide",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$packaging",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$importlib_metadata",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$dataclasses_json",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$typeguard",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$numpy",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$pytest",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$certifi",
+    "/home/rice/venvs/torchft/lib/pyre_check/typeshed/stdlib",
+    "/home/rice/venvs/torchft/lib/pyre_check/typeshed/stubs/ExifRead",
+    "/home/rice/venvs/torchft/lib/pyre_check/typeshed/stubs/Pillow",
+    "/home/rice/venvs/torchft/lib/pyre_check/typeshed/stubs/PyMySQL",
+    "/home/rice/venvs/torchft/lib/pyre_check/typeshed/stubs/PyYAML",
+    "/home/rice/venvs/torchft/lib/pyre_check/typeshed/stubs/aiofiles",
+    "/home/rice/venvs/torchft/lib/pyre_check/typeshed/stubs/boto",
+    "/home/rice/venvs/torchft/lib/pyre_check/typeshed/stubs/chevron",
+    "/home/rice/venvs/torchft/lib/pyre_check/typeshed/stubs/colorama",
+    "/home/rice/venvs/torchft/lib/pyre_check/typeshed/stubs/ldap3",
+    "/home/rice/venvs/torchft/lib/pyre_check/typeshed/stubs/mysqlclient",
+    "/home/rice/venvs/torchft/lib/pyre_check/typeshed/stubs/paramiko",
+    "/home/rice/venvs/torchft/lib/pyre_check/typeshed/stubs/psycopg2",
+    "/home/rice/venvs/torchft/lib/pyre_check/typeshed/stubs/pycurl",
+    "/home/rice/venvs/torchft/lib/pyre_check/typeshed/stubs/python-dateutil",
+    "/home/rice/venvs/torchft/lib/pyre_check/typeshed/stubs/pytz",
+    "/home/rice/venvs/torchft/lib/pyre_check/typeshed/stubs/regex",
+    "/home/rice/venvs/torchft/lib/pyre_check/typeshed/stubs/requests",
+    "/home/rice/venvs/torchft/lib/pyre_check/typeshed/stubs/retry",
+    "/home/rice/venvs/torchft/lib/pyre_check/typeshed/stubs/tqdm",
+    "/home/rice/venvs/torchft/lib/pyre_check/typeshed/stubs/ujson"
+  ],
+  "excludes": [],
+  "checked_directory_allowlist": [
+    "/home/rice/Developer/torchft/torchft"
+  ],
+  "checked_directory_blocklist": [],
+  "extensions": [],
+  "log_path": "/home/rice/Developer/torchft/.pyre",
+  "global_root": "/home/rice/Developer/torchft",
+  "debug": false,
+  "python_version": {
+    "major": 3,
+    "minor": 12,
+    "micro": 4
+  },
+  "shared_memory": {},
+  "parallel": true,
+  "number_of_workers": 7,
+  "additional_logging_sections": [],
+  "show_error_traces": false,
+  "strict": false
+}
+2024-10-06 23:04:16,600 [PID 378262] INFO  Initializing shared memory (heap_size: 8589934592, dep_table_pow: 1, hash_table_pow: 26)
+2024-10-06 23:04:16,611 [PID 378262] INFO  Building module tracker...
+2024-10-06 23:04:17,290 [PID 378262] PERFORMANCE  Module tracker built: 0.688s
+2024-10-06 23:04:17,432 [PID 378262] PERFORMANCE  Full environment built: 0.825s
+2024-10-06 23:04:17,433 [PID 378262] INFO  Collecting all definitions...
+2024-10-06 23:04:17,585 [PID 378262] PERFORMANCE  Collected definitions (defines: 34): 0.150s
+2024-10-06 23:04:17,585 [PID 378262] INFO  Checking 34 functions...
+2024-10-06 23:04:17,910 [PID 378262] INFO  Processed 3 of 34 functions
+2024-10-06 23:04:17,992 [PID 378262] INFO  Processed 6 of 34 functions
+2024-10-06 23:04:18,948 [PID 378262] INFO  Processed 9 of 34 functions
+2024-10-06 23:04:19,071 [PID 378262] INFO  Processed 12 of 34 functions
+2024-10-06 23:04:19,122 [PID 378262] INFO  Processed 15 of 34 functions
+2024-10-06 23:04:19,204 [PID 378262] INFO  Processed 16 of 34 functions
+2024-10-06 23:04:19,204 [PID 378262] INFO  Processed 19 of 34 functions
+2024-10-06 23:04:19,225 [PID 378262] INFO  Processed 22 of 34 functions
+2024-10-06 23:04:19,256 [PID 378262] INFO  Processed 25 of 34 functions
+2024-10-06 23:04:19,317 [PID 378262] INFO  Processed 28 of 34 functions
+2024-10-06 23:04:19,318 [PID 378262] INFO  Processed 31 of 34 functions
+2024-10-06 23:04:19,338 [PID 378262] INFO  Processed 34 of 34 functions
+2024-10-06 23:04:19,339 [PID 378262] PERFORMANCE  Check_TypeCheck: 1.750s
+2024-10-06 23:04:19,339 [PID 378262] MEMORY  Shared memory size post-typecheck (size: 3)
+2024-10-06 23:04:19,339 [PID 378262] INFO  Postprocessing 6 sources...
+2024-10-06 23:04:19,400 [PID 378262] INFO  Postprocessed 1 of 6 sources
+2024-10-06 23:04:19,401 [PID 378262] INFO  Postprocessed 2 of 6 sources
+2024-10-06 23:04:19,401 [PID 378262] INFO  Postprocessed 3 of 6 sources
+2024-10-06 23:04:19,401 [PID 378262] INFO  Postprocessed 4 of 6 sources
+2024-10-06 23:04:19,401 [PID 378262] INFO  Postprocessed 5 of 6 sources
+2024-10-06 23:04:19,412 [PID 378262] INFO  Postprocessed 6 of 6 sources
+2024-10-06 23:04:19,412 [PID 378262] PERFORMANCE  Check_Postprocessing: 0.082s
+2024-10-06 23:04:19,412 [PID 378262] PERFORMANCE  Check (request kind: FullCheck): 2.809s
+2024-10-06 23:04:19,464 [PID 378262] ERROR Found 5 type errors!
+2024-10-06 23:04:32,573 [PID 378344] INFO No binary specified, looking for `pyre.bin` in PATH
+2024-10-06 23:04:32,573 [PID 378344] INFO Pyre binary is located at `/home/rice/venvs/torchft/bin/pyre.bin`
+2024-10-06 23:04:32,575 [PID 378344] INFO Could not determine the number of Pyre workers from configuration. Auto-set the value to 7.
+2024-10-06 23:04:32,581 [PID 378344] INFO No typeshed specified, looking for it...
+2024-10-06 23:04:32,581 [PID 378344] INFO Found: `/home/rice/venvs/torchft/lib/pyre_check/typeshed`
+2024-10-06 23:04:32,582 [PID 378344] INFO Writing arguments into /tmp/pyre_arguments_07nsdaw6.json...
+2024-10-06 23:04:32,583 [PID 378344] DEBUG Arguments:
+{
+  "source_paths": {
+    "kind": "simple",
+    "paths": [
+      "/home/rice/Developer/torchft$torchft"
+    ]
+  },
+  "search_paths": [
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$marshmallow",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$pluggy",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$testslide",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$filelock",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$dataclasses_json",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$jinja2",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$torch",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$numpy",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$pytest",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$click",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$black",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$pathspec",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$mypy",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$_pytest",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$typeguard",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$platformdirs",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$pip",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$sympy",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$packaging",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$iniconfig",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$idna",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$markupsafe",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$docstring_parser",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$importlib_metadata",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$certifi",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$charset_normalizer",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$libcst",
+    "/home/rice/venvs/torchft/lib/pyre_check/typeshed/stdlib",
+    "/home/rice/venvs/torchft/lib/pyre_check/typeshed/stubs/ExifRead",
+    "/home/rice/venvs/torchft/lib/pyre_check/typeshed/stubs/Pillow",
+    "/home/rice/venvs/torchft/lib/pyre_check/typeshed/stubs/PyMySQL",
+    "/home/rice/venvs/torchft/lib/pyre_check/typeshed/stubs/PyYAML",
+    "/home/rice/venvs/torchft/lib/pyre_check/typeshed/stubs/aiofiles",
+    "/home/rice/venvs/torchft/lib/pyre_check/typeshed/stubs/boto",
+    "/home/rice/venvs/torchft/lib/pyre_check/typeshed/stubs/chevron",
+    "/home/rice/venvs/torchft/lib/pyre_check/typeshed/stubs/colorama",
+    "/home/rice/venvs/torchft/lib/pyre_check/typeshed/stubs/ldap3",
+    "/home/rice/venvs/torchft/lib/pyre_check/typeshed/stubs/mysqlclient",
+    "/home/rice/venvs/torchft/lib/pyre_check/typeshed/stubs/paramiko",
+    "/home/rice/venvs/torchft/lib/pyre_check/typeshed/stubs/psycopg2",
+    "/home/rice/venvs/torchft/lib/pyre_check/typeshed/stubs/pycurl",
+    "/home/rice/venvs/torchft/lib/pyre_check/typeshed/stubs/python-dateutil",
+    "/home/rice/venvs/torchft/lib/pyre_check/typeshed/stubs/pytz",
+    "/home/rice/venvs/torchft/lib/pyre_check/typeshed/stubs/regex",
+    "/home/rice/venvs/torchft/lib/pyre_check/typeshed/stubs/requests",
+    "/home/rice/venvs/torchft/lib/pyre_check/typeshed/stubs/retry",
+    "/home/rice/venvs/torchft/lib/pyre_check/typeshed/stubs/tqdm",
+    "/home/rice/venvs/torchft/lib/pyre_check/typeshed/stubs/ujson"
+  ],
+  "excludes": [],
+  "checked_directory_allowlist": [
+    "/home/rice/Developer/torchft/torchft"
+  ],
+  "checked_directory_blocklist": [],
+  "extensions": [],
+  "log_path": "/home/rice/Developer/torchft/.pyre",
+  "global_root": "/home/rice/Developer/torchft",
+  "debug": false,
+  "python_version": {
+    "major": 3,
+    "minor": 12,
+    "micro": 4
+  },
+  "shared_memory": {},
+  "parallel": true,
+  "number_of_workers": 7,
+  "additional_logging_sections": [],
+  "show_error_traces": false,
+  "strict": false
+}
+2024-10-06 23:04:32,646 [PID 378344] INFO  Initializing shared memory (heap_size: 8589934592, dep_table_pow: 1, hash_table_pow: 26)
+2024-10-06 23:04:32,656 [PID 378344] INFO  Building module tracker...
+2024-10-06 23:04:33,366 [PID 378344] PERFORMANCE  Module tracker built: 0.717s
+2024-10-06 23:04:33,509 [PID 378344] PERFORMANCE  Full environment built: 0.859s
+2024-10-06 23:04:33,509 [PID 378344] INFO  Collecting all definitions...
+2024-10-06 23:04:33,661 [PID 378344] PERFORMANCE  Collected definitions (defines: 34): 0.149s
+2024-10-06 23:04:33,661 [PID 378344] INFO  Checking 34 functions...
+2024-10-06 23:04:33,997 [PID 378344] INFO  Processed 3 of 34 functions
+2024-10-06 23:04:34,079 [PID 378344] INFO  Processed 6 of 34 functions
+2024-10-06 23:04:34,953 [PID 378344] INFO  Processed 9 of 34 functions
+2024-10-06 23:04:35,065 [PID 378344] INFO  Processed 12 of 34 functions
+2024-10-06 23:04:35,127 [PID 378344] INFO  Processed 15 of 34 functions
+2024-10-06 23:04:35,209 [PID 378344] INFO  Processed 16 of 34 functions
+2024-10-06 23:04:35,209 [PID 378344] INFO  Processed 19 of 34 functions
+2024-10-06 23:04:35,220 [PID 378344] INFO  Processed 22 of 34 functions
+2024-10-06 23:04:35,251 [PID 378344] INFO  Processed 25 of 34 functions
+2024-10-06 23:04:35,313 [PID 378344] INFO  Processed 28 of 34 functions
+2024-10-06 23:04:35,313 [PID 378344] INFO  Processed 31 of 34 functions
+2024-10-06 23:04:35,333 [PID 378344] INFO  Processed 34 of 34 functions
+2024-10-06 23:04:35,334 [PID 378344] PERFORMANCE  Check_TypeCheck: 1.673s
+2024-10-06 23:04:35,334 [PID 378344] MEMORY  Shared memory size post-typecheck (size: 3)
+2024-10-06 23:04:35,334 [PID 378344] INFO  Postprocessing 6 sources...
+2024-10-06 23:04:35,405 [PID 378344] INFO  Postprocessed 1 of 6 sources
+2024-10-06 23:04:35,406 [PID 378344] INFO  Postprocessed 2 of 6 sources
+2024-10-06 23:04:35,406 [PID 378344] INFO  Postprocessed 3 of 6 sources
+2024-10-06 23:04:35,406 [PID 378344] INFO  Postprocessed 4 of 6 sources
+2024-10-06 23:04:35,406 [PID 378344] INFO  Postprocessed 5 of 6 sources
+2024-10-06 23:04:35,416 [PID 378344] INFO  Postprocessed 6 of 6 sources
+2024-10-06 23:04:35,417 [PID 378344] PERFORMANCE  Check_Postprocessing: 0.084s
+2024-10-06 23:04:35,417 [PID 378344] PERFORMANCE  Check (request kind: FullCheck): 2.766s
+2024-10-06 23:04:35,468 [PID 378344] ERROR Found 4 type errors!
+2024-10-06 23:05:24,384 [PID 378441] INFO No binary specified, looking for `pyre.bin` in PATH
+2024-10-06 23:05:24,385 [PID 378441] INFO Pyre binary is located at `/home/rice/venvs/torchft/bin/pyre.bin`
+2024-10-06 23:05:24,387 [PID 378441] INFO Could not determine the number of Pyre workers from configuration. Auto-set the value to 7.
+2024-10-06 23:05:24,392 [PID 378441] INFO No typeshed specified, looking for it...
+2024-10-06 23:05:24,392 [PID 378441] INFO Found: `/home/rice/venvs/torchft/lib/pyre_check/typeshed`
+2024-10-06 23:05:24,394 [PID 378441] INFO Writing arguments into /tmp/pyre_arguments_a9zlyx6i.json...
+2024-10-06 23:05:24,395 [PID 378441] DEBUG Arguments:
+{
+  "source_paths": {
+    "kind": "simple",
+    "paths": [
+      "/home/rice/Developer/torchft$torchft"
+    ]
+  },
+  "search_paths": [
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$pip",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$dataclasses_json",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$mypy",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$numpy",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$sympy",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$pluggy",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$torch",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$pathspec",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$marshmallow",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$packaging",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$click",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$black",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$docstring_parser",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$_pytest",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$markupsafe",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$certifi",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$importlib_metadata",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$iniconfig",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$filelock",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$pytest",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$platformdirs",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$libcst",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$jinja2",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$typeguard",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$idna",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$testslide",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$charset_normalizer",
+    "/home/rice/venvs/torchft/lib/pyre_check/typeshed/stdlib",
+    "/home/rice/venvs/torchft/lib/pyre_check/typeshed/stubs/ExifRead",
+    "/home/rice/venvs/torchft/lib/pyre_check/typeshed/stubs/Pillow",
+    "/home/rice/venvs/torchft/lib/pyre_check/typeshed/stubs/PyMySQL",
+    "/home/rice/venvs/torchft/lib/pyre_check/typeshed/stubs/PyYAML",
+    "/home/rice/venvs/torchft/lib/pyre_check/typeshed/stubs/aiofiles",
+    "/home/rice/venvs/torchft/lib/pyre_check/typeshed/stubs/boto",
+    "/home/rice/venvs/torchft/lib/pyre_check/typeshed/stubs/chevron",
+    "/home/rice/venvs/torchft/lib/pyre_check/typeshed/stubs/colorama",
+    "/home/rice/venvs/torchft/lib/pyre_check/typeshed/stubs/ldap3",
+    "/home/rice/venvs/torchft/lib/pyre_check/typeshed/stubs/mysqlclient",
+    "/home/rice/venvs/torchft/lib/pyre_check/typeshed/stubs/paramiko",
+    "/home/rice/venvs/torchft/lib/pyre_check/typeshed/stubs/psycopg2",
+    "/home/rice/venvs/torchft/lib/pyre_check/typeshed/stubs/pycurl",
+    "/home/rice/venvs/torchft/lib/pyre_check/typeshed/stubs/python-dateutil",
+    "/home/rice/venvs/torchft/lib/pyre_check/typeshed/stubs/pytz",
+    "/home/rice/venvs/torchft/lib/pyre_check/typeshed/stubs/regex",
+    "/home/rice/venvs/torchft/lib/pyre_check/typeshed/stubs/requests",
+    "/home/rice/venvs/torchft/lib/pyre_check/typeshed/stubs/retry",
+    "/home/rice/venvs/torchft/lib/pyre_check/typeshed/stubs/tqdm",
+    "/home/rice/venvs/torchft/lib/pyre_check/typeshed/stubs/ujson"
+  ],
+  "excludes": [],
+  "checked_directory_allowlist": [
+    "/home/rice/Developer/torchft/torchft"
+  ],
+  "checked_directory_blocklist": [],
+  "extensions": [],
+  "log_path": "/home/rice/Developer/torchft/.pyre",
+  "global_root": "/home/rice/Developer/torchft",
+  "debug": false,
+  "python_version": {
+    "major": 3,
+    "minor": 12,
+    "micro": 4
+  },
+  "shared_memory": {},
+  "parallel": true,
+  "number_of_workers": 7,
+  "additional_logging_sections": [],
+  "show_error_traces": false,
+  "strict": false
+}
+2024-10-06 23:05:24,457 [PID 378441] INFO  Initializing shared memory (heap_size: 8589934592, dep_table_pow: 1, hash_table_pow: 26)
+2024-10-06 23:05:24,468 [PID 378441] INFO  Building module tracker...
+2024-10-06 23:05:25,127 [PID 378441] PERFORMANCE  Module tracker built: 0.661s
+2024-10-06 23:05:25,269 [PID 378441] PERFORMANCE  Full environment built: 0.803s
+2024-10-06 23:05:25,270 [PID 378441] INFO  Collecting all definitions...
+2024-10-06 23:05:25,422 [PID 378441] PERFORMANCE  Collected definitions (defines: 34): 0.151s
+2024-10-06 23:05:25,422 [PID 378441] INFO  Checking 34 functions...
+2024-10-06 23:05:25,747 [PID 378441] INFO  Processed 3 of 34 functions
+2024-10-06 23:05:25,829 [PID 378441] INFO  Processed 6 of 34 functions
+2024-10-06 23:05:26,713 [PID 378441] INFO  Processed 9 of 34 functions
+2024-10-06 23:05:26,835 [PID 378441] INFO  Processed 12 of 34 functions
+2024-10-06 23:05:26,877 [PID 378441] INFO  Processed 15 of 34 functions
+2024-10-06 23:05:26,959 [PID 378441] INFO  Processed 16 of 34 functions
+2024-10-06 23:05:26,969 [PID 378441] INFO  Processed 19 of 34 functions
+2024-10-06 23:05:26,980 [PID 378441] INFO  Processed 22 of 34 functions
+2024-10-06 23:05:27,021 [PID 378441] INFO  Processed 25 of 34 functions
+2024-10-06 23:05:27,083 [PID 378441] INFO  Processed 28 of 34 functions
+2024-10-06 23:05:27,083 [PID 378441] INFO  Processed 31 of 34 functions
+2024-10-06 23:05:27,104 [PID 378441] INFO  Processed 34 of 34 functions
+2024-10-06 23:05:27,104 [PID 378441] PERFORMANCE  Check_TypeCheck: 1.682s
+2024-10-06 23:05:27,104 [PID 378441] MEMORY  Shared memory size post-typecheck (size: 3)
+2024-10-06 23:05:27,104 [PID 378441] INFO  Postprocessing 6 sources...
+2024-10-06 23:05:27,165 [PID 378441] INFO  Postprocessed 1 of 6 sources
+2024-10-06 23:05:27,166 [PID 378441] INFO  Postprocessed 2 of 6 sources
+2024-10-06 23:05:27,166 [PID 378441] INFO  Postprocessed 3 of 6 sources
+2024-10-06 23:05:27,166 [PID 378441] INFO  Postprocessed 4 of 6 sources
+2024-10-06 23:05:27,166 [PID 378441] INFO  Postprocessed 5 of 6 sources
+2024-10-06 23:05:27,187 [PID 378441] INFO  Postprocessed 6 of 6 sources
+2024-10-06 23:05:27,187 [PID 378441] PERFORMANCE  Check_Postprocessing: 0.083s
+2024-10-06 23:05:27,188 [PID 378441] PERFORMANCE  Check (request kind: FullCheck): 2.720s
+2024-10-06 23:05:27,239 [PID 378441] SUCCESS No type errors found
+2024-10-06 23:05:49,020 [PID 378627] INFO No binary specified, looking for `pyre.bin` in PATH
+2024-10-06 23:05:49,021 [PID 378627] INFO Pyre binary is located at `/home/rice/venvs/torchft/bin/pyre.bin`
+2024-10-06 23:05:49,023 [PID 378627] INFO Could not determine the number of Pyre workers from configuration. Auto-set the value to 7.
+2024-10-06 23:05:49,028 [PID 378627] INFO No typeshed specified, looking for it...
+2024-10-06 23:05:49,029 [PID 378627] INFO Found: `/home/rice/venvs/torchft/lib/pyre_check/typeshed`
+2024-10-06 23:05:49,030 [PID 378627] INFO Writing arguments into /tmp/pyre_arguments_169ifm8p.json...
+2024-10-06 23:05:49,030 [PID 378627] DEBUG Arguments:
+{
+  "source_paths": {
+    "kind": "simple",
+    "paths": [
+      "/home/rice/Developer/torchft$torchft"
+    ]
+  },
+  "search_paths": [
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$libcst",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$filelock",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$pluggy",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$pytest",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$idna",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$mypy",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$sympy",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$markupsafe",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$black",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$packaging",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$testslide",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$click",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$docstring_parser",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$pathspec",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$platformdirs",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$dataclasses_json",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$importlib_metadata",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$marshmallow",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$numpy",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$typeguard",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$_pytest",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$iniconfig",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$torch",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$pip",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$charset_normalizer",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$certifi",
+    "/home/rice/venvs/torchft/lib/python3.12/site-packages$jinja2",
+    "/home/rice/venvs/torchft/lib/pyre_check/typeshed/stdlib",
+    "/home/rice/venvs/torchft/lib/pyre_check/typeshed/stubs/ExifRead",
+    "/home/rice/venvs/torchft/lib/pyre_check/typeshed/stubs/Pillow",
+    "/home/rice/venvs/torchft/lib/pyre_check/typeshed/stubs/PyMySQL",
+    "/home/rice/venvs/torchft/lib/pyre_check/typeshed/stubs/PyYAML",
+    "/home/rice/venvs/torchft/lib/pyre_check/typeshed/stubs/aiofiles",
+    "/home/rice/venvs/torchft/lib/pyre_check/typeshed/stubs/boto",
+    "/home/rice/venvs/torchft/lib/pyre_check/typeshed/stubs/chevron",
+    "/home/rice/venvs/torchft/lib/pyre_check/typeshed/stubs/colorama",
+    "/home/rice/venvs/torchft/lib/pyre_check/typeshed/stubs/ldap3",
+    "/home/rice/venvs/torchft/lib/pyre_check/typeshed/stubs/mysqlclient",
+    "/home/rice/venvs/torchft/lib/pyre_check/typeshed/stubs/paramiko",
+    "/home/rice/venvs/torchft/lib/pyre_check/typeshed/stubs/psycopg2",
+    "/home/rice/venvs/torchft/lib/pyre_check/typeshed/stubs/pycurl",
+    "/home/rice/venvs/torchft/lib/pyre_check/typeshed/stubs/python-dateutil",
+    "/home/rice/venvs/torchft/lib/pyre_check/typeshed/stubs/pytz",
+    "/home/rice/venvs/torchft/lib/pyre_check/typeshed/stubs/regex",
+    "/home/rice/venvs/torchft/lib/pyre_check/typeshed/stubs/requests",
+    "/home/rice/venvs/torchft/lib/pyre_check/typeshed/stubs/retry",
+    "/home/rice/venvs/torchft/lib/pyre_check/typeshed/stubs/tqdm",
+    "/home/rice/venvs/torchft/lib/pyre_check/typeshed/stubs/ujson"
+  ],
+  "excludes": [],
+  "checked_directory_allowlist": [
+    "/home/rice/Developer/torchft/torchft"
+  ],
+  "checked_directory_blocklist": [],
+  "extensions": [],
+  "log_path": "/home/rice/Developer/torchft/.pyre",
+  "global_root": "/home/rice/Developer/torchft",
+  "debug": false,
+  "python_version": {
+    "major": 3,
+    "minor": 12,
+    "micro": 4
+  },
+  "shared_memory": {},
+  "parallel": true,
+  "number_of_workers": 7,
+  "additional_logging_sections": [],
+  "show_error_traces": false,
+  "strict": false
+}
+2024-10-06 23:05:49,083 [PID 378627] INFO  Initializing shared memory (heap_size: 8589934592, dep_table_pow: 1, hash_table_pow: 26)
+2024-10-06 23:05:49,093 [PID 378627] INFO  Building module tracker...
+2024-10-06 23:05:49,801 [PID 378627] PERFORMANCE  Module tracker built: 0.703s
+2024-10-06 23:05:49,943 [PID 378627] PERFORMANCE  Full environment built: 0.850s
+2024-10-06 23:05:49,943 [PID 378627] INFO  Collecting all definitions...
+2024-10-06 23:05:50,095 [PID 378627] PERFORMANCE  Collected definitions (defines: 34): 0.149s
+2024-10-06 23:05:50,096 [PID 378627] INFO  Checking 34 functions...
+2024-10-06 23:05:50,451 [PID 378627] INFO  Processed 3 of 34 functions
+2024-10-06 23:05:50,533 [PID 378627] INFO  Processed 6 of 34 functions
+2024-10-06 23:05:51,387 [PID 378627] INFO  Processed 9 of 34 functions
+2024-10-06 23:05:51,520 [PID 378627] INFO  Processed 12 of 34 functions
+2024-10-06 23:05:51,561 [PID 378627] INFO  Processed 15 of 34 functions
+2024-10-06 23:05:51,643 [PID 378627] INFO  Processed 16 of 34 functions
+2024-10-06 23:05:51,674 [PID 378627] INFO  Processed 19 of 34 functions
+2024-10-06 23:05:51,684 [PID 378627] INFO  Processed 22 of 34 functions
+2024-10-06 23:05:51,705 [PID 378627] INFO  Processed 25 of 34 functions
+2024-10-06 23:05:51,767 [PID 378627] INFO  Processed 28 of 34 functions
+2024-10-06 23:05:51,767 [PID 378627] INFO  Processed 31 of 34 functions
+2024-10-06 23:05:51,788 [PID 378627] INFO  Processed 34 of 34 functions
+2024-10-06 23:05:51,788 [PID 378627] PERFORMANCE  Check_TypeCheck: 1.694s
+2024-10-06 23:05:51,789 [PID 378627] MEMORY  Shared memory size post-typecheck (size: 3)
+2024-10-06 23:05:51,789 [PID 378627] INFO  Postprocessing 6 sources...
+2024-10-06 23:05:51,860 [PID 378627] INFO  Postprocessed 1 of 6 sources
+2024-10-06 23:05:51,860 [PID 378627] INFO  Postprocessed 2 of 6 sources
+2024-10-06 23:05:51,860 [PID 378627] INFO  Postprocessed 3 of 6 sources
+2024-10-06 23:05:51,860 [PID 378627] INFO  Postprocessed 4 of 6 sources
+2024-10-06 23:05:51,860 [PID 378627] INFO  Postprocessed 5 of 6 sources
+2024-10-06 23:05:51,871 [PID 378627] INFO  Postprocessed 6 of 6 sources
+2024-10-06 23:05:51,871 [PID 378627] PERFORMANCE  Check_Postprocessing: 0.082s
+2024-10-06 23:05:51,871 [PID 378627] PERFORMANCE  Check (request kind: FullCheck): 2.776s
+2024-10-06 23:05:51,923 [PID 378627] SUCCESS No type errors found
