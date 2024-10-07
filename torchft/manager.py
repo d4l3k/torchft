@@ -128,6 +128,9 @@ class Manager:
             self._pg.configure(store, replica_rank, replica_world)
             self._quorum_id = quorum_id
 
+        # TODO: on step 0 we need everyone to load a consistent checkpoint to
+        # avoid initialization differences
+
         self._healing = self._step != max_step
         if self._healing:
             logger.info(f"detected behind step={self._step}, max_step={max_step}")
