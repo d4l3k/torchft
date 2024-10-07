@@ -7,7 +7,7 @@ import torch
 from torch import nn
 from torch.distributed.algorithms.join import Joinable
 import torch.distributed as dist
-from torchft.process_group import ReconfigPG
+from torchft.process_group import ProcessGroup
 
 if TYPE_CHECKING:
     from torchft.manager import Manager
@@ -52,7 +52,7 @@ class HackedDistributedDataParallel(parallel.DistributedDataParallel):
     def __init__(
         self,
         module: nn.Module,
-        process_group: ReconfigPG,
+        process_group: ProcessGroup,
         bucket_cap_mb: Optional[int] = None,
         find_unused_parameters: bool = False,
         gradient_as_bucket_view: bool = False,

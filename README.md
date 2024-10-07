@@ -43,10 +43,10 @@ $ TORCHFT_MANAGER_PORT=29512 TORCHFT_LIGHTHOUSE=http://localhost:29510 torchrun 
 train.py:
 
 ```py
-from torchft import Manager, DistributedDataParallel, Optimizer, ReconfigPGGloo
+from torchft import Manager, DistributedDataParallel, Optimizer, ProcessGroupGloo
 
 manager = Manager(
-    pg=ReconfigPGGloo(), 
+    pg=ProcessGroupGloo(), 
     load_state_dict=...,
     state_dict=...,
 )

@@ -4,7 +4,7 @@ import logging
 import torch
 from torch import nn, optim
 
-from torchft import Manager, ReconfigPGGloo, DistributedDataParallel, Optimizer
+from torchft import Manager, ProcessGroupGloo, DistributedDataParallel, Optimizer
 
 logging.basicConfig(level=logging.INFO)
 
@@ -24,7 +24,7 @@ def state_dict():
 
 
 manager = Manager(
-    pg=ReconfigPGGloo(),
+    pg=ProcessGroupGloo(),
     load_state_dict=load_state_dict,
     state_dict=state_dict,
 )
