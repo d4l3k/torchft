@@ -13,7 +13,7 @@ class TestDDP(TestCase):
         manager = create_autospec(Manager)
 
         m = nn.Linear(3, 4)
-        m = DistributedDataParallel(m, manager)
+        m = DistributedDataParallel(manager, m)
 
         inp = torch.rand(2, 3)
         out = m(inp)

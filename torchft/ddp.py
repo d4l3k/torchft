@@ -18,7 +18,7 @@ class DistributedDataParallel(nn.Module):
     A pure reimplementation of the DDP wrapper.
     """
 
-    def __init__(self, module: nn.Module, manager: "Manager"):
+    def __init__(self, manager: "Manager", module: nn.Module):
         super().__init__()
 
         self.module = module

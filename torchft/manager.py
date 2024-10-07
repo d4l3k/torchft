@@ -10,7 +10,6 @@ from torch.optim import Optimizer
 
 # pyre-fixme[21]: can't find rust module
 from torchft.torchft import Manager as _Manager, ManagerClient
-from torchft.optim import OptimizerWrapper
 from torchft.checkpointing import CheckpointServer
 
 logger: logging.Logger = logging.getLogger(__name__)
@@ -81,7 +80,8 @@ class Manager:
         if self._errored:
             return
         try:
-            self._pg.allreduce(tensor)
+            handle = self._pg.allreduce(tensor, None)
+            handle.wait()
             # TODO: rescale tensor according to num_max
         except Exception as e:
             logger.exception("got exception in all reduce -- skipping remaining")
@@ -158,6 +158,3 @@ class Manager:
 
     def state_dict(self) -> Dict[str, int]:
         return {"step": self._step}
-
-    def wrap_optimizer(self, optim: Optimizer) -> Optimizer:
-        return OptimizerWrapper(manager=self, optim=optim)

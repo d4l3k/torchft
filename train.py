@@ -19,8 +19,8 @@ manager = Manager(
     state_dict=m.state_dict,
 )
 
-m = DistributedDataParallel(m, manager)
-optimizer = Optimizer(optim.AdamW(m.parameters()), manager)
+m = DistributedDataParallel(manager, m)
+optimizer = Optimizer(manager, optim.AdamW(m.parameters()))
 
 print(m)
 
