@@ -258,6 +258,13 @@ impl ManagerService for Arc<Manager> {
                     .send(state.should_commit_failures == 0)
                     .map_err(|e| Status::from_error(e.into()))?;
             }
+
+            // reset state
+            state.should_commit_count = 0;
+            state.should_commit_failures = 0;
+            let (should_commit_tx, _) = broadcast::channel(16);
+            state.should_commit_channel = should_commit_tx;
+
             rx
         };
 

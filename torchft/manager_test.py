@@ -50,6 +50,7 @@ class TestManager(TestCase):
     @patch("torchft.manager.ManagerClient", autospec=True)
     def test_quorum_happy(self, client_mock) -> None:
         manager = self._create_manager()
+        client_mock().should_commit = lambda rank, step, should_commit: should_commit
 
         client_mock().quorum.return_value = (
             123,  # quorum_id
@@ -76,6 +77,7 @@ class TestManager(TestCase):
     @patch("torchft.manager.ManagerClient", autospec=True)
     def test_quorum_behind(self, client_mock) -> None:
         manager = self._create_manager()
+        client_mock().should_commit = lambda rank, step, should_commit: should_commit
 
         client_mock().quorum.return_value = (
             123,  # quorum_id
@@ -108,6 +110,7 @@ class TestManager(TestCase):
     @patch("torchft.manager.ManagerClient", autospec=True)
     def test_allreduce_error(self, client_mock) -> None:
         manager = self._create_manager()
+        client_mock().should_commit = lambda rank, step, should_commit: should_commit
 
         client_mock().quorum.return_value = (
             123,  # quorum_id

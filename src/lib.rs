@@ -17,7 +17,7 @@ pub mod torchftpb {
 }
 
 use crate::torchftpb::manager_service_client::ManagerServiceClient;
-use crate::torchftpb::{CheckpointAddressRequest, ManagerQuorumRequest};
+use crate::torchftpb::{CheckpointAddressRequest, ManagerQuorumRequest, ShouldCommitRequest};
 use pyo3::prelude::*;
 
 #[pyclass]
@@ -128,6 +128,28 @@ impl ManagerClient {
                 .map_err(|e| PyRuntimeError::new_err(e.to_string()))?;
             let resp = response.into_inner();
             Ok(resp.checkpoint_server_address)
+        })
+    }
+
+    fn should_commit(
+        &mut self,
+        py: Python<'_>,
+        rank: i64,
+        step: i64,
+        should_commit: bool,
+    ) -> PyResult<bool> {
+        py.allow_threads(move || {
+            let request = tonic::Request::new(ShouldCommitRequest {
+                rank: rank,
+                step: step,
+                should_commit: should_commit,
+            });
+            let response = self
+                .runtime
+                .block_on(self.client.should_commit(request))
+                .map_err(|e| PyRuntimeError::new_err(e.to_string()))?;
+            let resp = response.into_inner();
+            Ok(resp.should_commit)
         })
     }
 }

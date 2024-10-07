@@ -149,12 +149,14 @@ class Manager:
             self._step = max_step
 
     def should_commit(self) -> bool:
+        should_commit = not self._errored
+        should_commit = self._client.should_commit(
+            self._rank, self._step, should_commit
+        )
+
         self._ckpt_server.disallow_checkpoint()
 
-        # TODO: sync error condition
-        if self._errored:
-            return False
-        return True
+        return should_commit
 
     def load_state_dict(self, state_dict: Dict[str, int]) -> None:
         self._step = state_dict["step"]
