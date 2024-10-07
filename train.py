@@ -4,7 +4,7 @@ import logging
 import torch
 from torch import nn, optim
 
-from torchft import Manager, ReconfigPGGloo
+from torchft import Manager, ReconfigPGGloo, DistributedDataParallel, Optimizer
 
 logging.basicConfig(level=logging.INFO)
 
@@ -19,7 +19,8 @@ manager = Manager(
     state_dict=m.state_dict,
 )
 
-optimizer = manager.wrap_optimizer(optim.AdamW(m.parameters()))
+m = DistributedDataParallel(m, manager)
+optimizer = Optimizer(optim.AdamW(m.parameters()), manager)
 
 print(m)
 

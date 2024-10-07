@@ -1,5 +1,5 @@
 import os
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 import sys
 
 from torch.nn import parallel
@@ -7,11 +7,35 @@ import torch
 from torch import nn
 from torch.distributed.algorithms.join import Joinable
 import torch.distributed as dist
-
 from torchft.process_group import ReconfigPG
 
+if TYPE_CHECKING:
+    from torchft.manager import Manager
 
-class DistributedDataParallel(parallel.DistributedDataParallel):
+
+class DistributedDataParallel(nn.Module):
+    """
+    A pure reimplementation of the DDP wrapper.
+    """
+
+    def __init__(self, module: nn.Module, manager: "Manager"):
+        super().__init__()
+
+        self.module = module
+
+        def post_grad_hook(p):
+            if p.grad is not None:
+                # TODO: use the torch reducer
+                manager.allreduce_grad(p.grad)
+
+        for p in module.parameters():
+            p.register_post_accumulate_grad_hook(post_grad_hook)
+
+    def forward(self, *args: object) -> object:
+        return self.module(*args)
+
+
+class HackedDistributedDataParallel(parallel.DistributedDataParallel):
     """
     This is a patched DistributedDataParallel implementation that makes it
     compatible with torchft.
