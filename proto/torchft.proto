@@ -65,6 +65,7 @@ message ManagerQuorumResponse {
     int64 num_max = 5;
     int64 replica_rank = 6;
     int64 replica_world = 7;
+    bool heal = 8;
 }
 
 message CheckpointAddressRequest {

@@ -59,6 +59,7 @@ class TestManager(TestCase):
             f"localhost:{self.store.port}",
             1,  # max_step
             2,  # num_max
+            False,  # heal
         )
 
         self.assertEqual(manager._quorum_id, -1)
@@ -84,6 +85,7 @@ class TestManager(TestCase):
             f"localhost:{self.store.port}",
             20,  # max_step
             2,  # num_max
+            True,  # heal
         )
         # forceable increment checkpoint server to compute correct address
         manager._ckpt_server.allow_checkpoint(1)
@@ -115,6 +117,7 @@ class TestManager(TestCase):
             f"localhost:{self.store.port}",
             1,  # max_step
             2,  # num_max
+            False,  # heal
         )
 
         self.assertEqual(manager._quorum_id, -1)
@@ -142,6 +145,7 @@ class TestManager(TestCase):
             f"localhost:{self.store.port}",
             2,  # max_step
             2,  # num_max
+            False,  # heal
         )
         manager._pg.allreduce.side_effect = None
 

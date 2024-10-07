@@ -188,6 +188,18 @@ impl ManagerService for Arc<Manager> {
             participants.iter().filter(|p| p.step == max_step).collect();
 
         let primary = max_participants[rank as usize % max_participants.len()];
+
+        // Decide whether we should be healing:
+        // 1. if we're not at the max step
+        // 2. if everyone is at the first step and we're not the primary
+        let heal = max_step != req.step || max_step == 1 && primary.replica_id != self.replica_id;
+        if heal {
+            info!(
+                "healing is required step={}, max_step={}",
+                req.step, max_step
+            );
+        }
+
         let reply = ManagerQuorumResponse {
             quorum_id: quorum.quorum_id,
             // address is used for looking up the checkpoint server address.
@@ -197,6 +209,7 @@ impl ManagerService for Arc<Manager> {
             num_max: max_participants.len() as i64,
             replica_rank: replica_rank as i64,
             replica_world: participants.len() as i64,
+            heal: heal,
         };
 
         info!("returning quorum for rank {}", rank);

@@ -111,6 +111,7 @@ class Manager:
             store_address,
             max_step,
             num_max,
+            heal,
         ) = self._client.quorum(
             rank=self._rank,
             step=self._step,
@@ -131,12 +132,10 @@ class Manager:
             self._pg.configure(store, replica_rank, replica_world)
             self._quorum_id = quorum_id
 
-        # TODO: on step 0 we need everyone to load a consistent checkpoint to
-        # avoid initialization differences
-
-        self._healing = self._step != max_step
-        if self._healing:
-            logger.info(f"detected behind step={self._step}, max_step={max_step}")
+        # See manager.rs for healing conditions
+        if heal:
+            self._healing = True
+            logger.info("healing required")
 
             logger.info(f"fetching checkpoint server address from {address}")
             # pyre-fixme[16]: can't find rust module
@@ -145,6 +144,7 @@ class Manager:
 
             state_dict = CheckpointServer.load_from_address(checkpoint_server_address)
             self._load_state_dict(state_dict)
+            self._healing = False
 
             self._step = max_step
 

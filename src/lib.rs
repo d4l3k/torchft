@@ -94,7 +94,7 @@ impl ManagerClient {
         rank: i64,
         step: i64,
         checkpoint_server_addr: String,
-    ) -> PyResult<(i64, i64, i64, String, String, i64, i64)> {
+    ) -> PyResult<(i64, i64, i64, String, String, i64, i64, bool)> {
         py.allow_threads(move || {
             let request = tonic::Request::new(ManagerQuorumRequest {
                 rank: rank,
@@ -114,6 +114,7 @@ impl ManagerClient {
                 resp.store_address,
                 resp.max_step,
                 resp.num_max,
+                resp.heal,
             ))
         })
     }
