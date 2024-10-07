@@ -157,4 +157,4 @@ class Manager:
         return {"step": self._step}
 
     def wrap_optimizer(self, optim: Optimizer) -> Optimizer:
-        return FTOptimizer(optim)
+        return FTOptimizer(manager=self, optim=optim)
