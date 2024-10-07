@@ -22,3 +22,5 @@ class TestDDP(TestCase):
 
         for p in m.parameters():
             self.assertIsNotNone(p.grad)
+
+        self.assertEqual(manager.allreduce_grad.call_count, len(list(m.parameters())))
