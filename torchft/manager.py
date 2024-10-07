@@ -76,6 +76,9 @@ class Manager:
         self._errored = False
         self._healing = False
 
+    def shutdown(self) -> None:
+        self._ckpt_server.shutdown()
+
     def allreduce_grad(self, tensor) -> None:
         if self._errored:
             return

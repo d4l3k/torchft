@@ -28,11 +28,9 @@ class CheckpointServer:
                         self.send_response(400)
                         self.send_header("Content-type", "text/plain")
                         self.end_headers()
-
-                        self.wfile.write(
-                            f"invalid checkpoint requested, serving {step} but got {self.path}".encode()
+                        self.err(
+                            f"invalid checkpoint requested, serving {step} but got {self.path}"
                         )
-
                         return
 
                     self.send_response(200)
@@ -45,6 +43,10 @@ class CheckpointServer:
 
                     torch.save(sd, self.wfile)
 
+            def err(self, msg: str) -> None:
+                logger.error(msg)
+                self.wfile.write(msg.encode())
+
         server_address = ("", 0)
         self._server = HTTPServer(server_address, RequestHandler)
         logger.info(f"Started CheckpointServer on {self.address()}...")
@@ -52,6 +54,7 @@ class CheckpointServer:
         self._thread = threading.Thread(
             target=self._serve,
             args=(),
+            daemon=True,
         )
         self._thread.start()
 
