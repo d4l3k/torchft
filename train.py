@@ -10,15 +10,26 @@ logging.basicConfig(level=logging.INFO)
 
 device = "cpu"
 
-m = nn.Linear(2, 3)
+
+def load_state_dict(state_dict):
+    m.load_state_dict(state_dict["model"])
+    optimizer.load_state_dict(state_dict["optim"])
+
+
+def state_dict():
+    return {
+        "model": m.state_dict(),
+        "optim": optimizer.state_dict(),
+    }
 
 
 manager = Manager(
     pg=ReconfigPGGloo(),
-    load_state_dict=m.load_state_dict,
-    state_dict=m.state_dict,
+    load_state_dict=load_state_dict,
+    state_dict=state_dict,
 )
 
+m = nn.Linear(2, 3)
 m = DistributedDataParallel(manager, m)
 optimizer = Optimizer(manager, optim.AdamW(m.parameters()))
 

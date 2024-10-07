@@ -43,23 +43,19 @@ $ TORCHFT_MANAGER_PORT=29512 TORCHFT_LIGHTHOUSE=http://localhost:29510 torchrun 
 train.py:
 
 ```py
-from torchft import Manager, ReconfigPGGloo
-
-m = nn.Linear(2, 3)
-
-optimizer = optim.AdamW(m.parameters())
+from torchft import Manager, DistributedDataParallel, Optimizer, ReconfigPGGloo
 
 manager = Manager(
     pg=ReconfigPGGloo(), 
-    load_state_dict=m.load_state_dict, 
-    state_dict=m.state_dict,
+    load_state_dict=...,
+    state_dict=...,
 )
 
-print(m)
+m = nn.Linear(2, 3)
+m = DistributedDataParallel(manager, m)
+optimizer = Optimizer(manager, optim.AdamW(m.parameters()))
 
 for i in range(1000):
-    manager.step()
-
     batch = torch.rand(2, 2, device=device)
 
     optimizer.zero_grad()
@@ -69,12 +65,7 @@ for i in range(1000):
 
     loss.backward()
 
-    for p in m.parameters():
-        if p.grad is not None:
-            manager.allreduce_grad(p.grad)
-    
-    if manager.should_commit():
-        optimizer.step()
+    optimizer.step()
 ```
 
 ## Running Tests / Lint
