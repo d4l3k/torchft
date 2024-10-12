@@ -10,7 +10,7 @@ from torchft.process_group import ProcessGroup
 
 
 class TestManager(TestCase):
-    def _create_manager(self) -> Manager:
+    def _create_manager(self, use_async_quorum: bool = True) -> Manager:
         pg = create_autospec(ProcessGroup)
         self.store = TCPStore(
             host_name="localhost", port=0, is_master=True, wait_for_workers=False
@@ -28,8 +28,10 @@ class TestManager(TestCase):
             self.load_state_dict = MagicMock()
             manager = Manager(
                 pg=pg,
+                min_replica_size=2,
                 load_state_dict=self.load_state_dict,
                 state_dict=lambda: {},
+                use_async_quorum=use_async_quorum,
             )
         return manager
 
@@ -78,8 +80,8 @@ class TestManager(TestCase):
         self.assertEqual(manager._pg.allreduce.call_count, 1)
 
     @patch("torchft.manager.ManagerClient", autospec=True)
-    def test_quorum_behind(self, client_mock) -> None:
-        manager = self._create_manager()
+    def test_quorum_heal_sync(self, client_mock) -> None:
+        manager = self._create_manager(use_async_quorum=False)
         client_mock().should_commit = lambda rank, step, should_commit: should_commit
 
         client_mock().quorum.return_value = (
@@ -102,7 +104,48 @@ class TestManager(TestCase):
 
         manager.step()
         manager.allreduce_grad(torch.tensor([1.0]))
+        self.assertFalse(manager._healing)
         self.assertTrue(manager.should_commit())
+
+        self.assertEqual(manager._quorum_id, 123)
+        self.assertEqual(manager._step, 20)
+        self.assertEqual(manager._pg.allreduce.call_count, 1)
+        self.assertEqual(manager._pg.allreduce.return_value.wait.call_count, 1)
+
+        self.assertEqual(self.load_state_dict.call_count, 1)
+
+    @patch("torchft.manager.ManagerClient", autospec=True)
+    def test_quorum_heal_async(self, client_mock) -> None:
+        manager = self._create_manager(use_async_quorum=True)
+        client_mock().should_commit = lambda rank, step, should_commit: should_commit
+
+        client_mock().quorum.return_value = (
+            123,  # quorum_id
+            1,  # replica_rank
+            2,  # replica_world
+            "manager address",
+            f"localhost:{self.store.port}",
+            20,  # max_step
+            1,  # num_max
+            True,  # heal
+        )
+        # forceable increment checkpoint server to compute correct address
+        manager._ckpt_server.allow_checkpoint(1)
+
+        client_mock().checkpoint_address.return_value = manager._ckpt_server.address()
+
+        self.assertEqual(manager._quorum_id, -1)
+        self.assertEqual(manager._step, 0)
+
+        manager.step()
+        manager._quorum_future.result()
+        self.assertTrue(manager._healing)
+
+        grad = torch.tensor([1.0])
+        manager.allreduce_grad(grad)
+        torch.testing.assert_close(grad, torch.zeros_like(grad))
+        # don't commit since num_max < min_replica_size
+        self.assertFalse(manager.should_commit())
 
         self.assertEqual(manager._quorum_id, 123)
         self.assertEqual(manager._step, 20)

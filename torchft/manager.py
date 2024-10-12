@@ -4,7 +4,9 @@ import socket
 from typing import Dict
 import time
 import logging
+from concurrent.futures import ThreadPoolExecutor
 
+import torch
 from torch.distributed import TCPStore, PrefixStore, Work, ReduceOp
 from torch.optim import Optimizer
 
@@ -27,18 +29,28 @@ class Manager:
     """
 
     def __init__(
-        self, pg, load_state_dict, state_dict, port: int = MANAGER_DEFAULT_PORT
+        self,
+        pg,
+        load_state_dict,
+        state_dict,
+        min_replica_size: int,
+        port: int = MANAGER_DEFAULT_PORT,
+        use_async_quorum: bool = True,
     ) -> None:
         self._load_state_dict = load_state_dict
         self._state_dict = state_dict
+        self._use_async_quorum = use_async_quorum
 
         store_addr = os.environ["MASTER_ADDR"]
         store_port = int(os.environ["MASTER_PORT"])
         rank = int(os.environ["RANK"])
         world_size = int(os.environ["WORLD_SIZE"])
         self._rank = rank
+        self._min_replica_size = min_replica_size
 
         self._ckpt_server = CheckpointServer(state_dict)
+        self._executor = ThreadPoolExecutor(max_workers=1)
+        self._quorum_future = None
 
         self._store = TCPStore(
             host_name=store_addr,
@@ -81,15 +93,21 @@ class Manager:
     def shutdown(self) -> None:
         self._ckpt_server.shutdown()
 
-    def allreduce_grad(self, tensor) -> None:
+    def allreduce_grad(self, grad: torch.Tensor) -> None:
         if self._errored:
             return
+
+        self._quorum_future.result()
+
+        if self._healing:
+            assert self._use_async_quorum
+            grad.zero_()
 
         try:
             # Run the allreduce async and save the work object so we can wait on
             # it later.
-            work = self._pg.allreduce([tensor], ReduceOp.SUM)
-            self._pending_work.append((work, [tensor]))
+            work = self._pg.allreduce([grad], ReduceOp.SUM)
+            self._pending_work.append((work, [grad]))
         except Exception as e:
             logger.exception("got exception in all reduce -- skipping remaining")
             self._errored = True
@@ -97,16 +115,21 @@ class Manager:
     def step(self) -> None:
         self._step += 1
         self._errored = False
+        self._healing = False
         self._ckpt_server.allow_checkpoint(self._step)
 
         # TODO: we should really be wrapping this whole section in a try-except
-        # block to allow gracefully recovering from issues in process.
+        # block to allow gracefully recovering from issues in PG setup and quorum.
 
-        # TODO: run this on a background thread pool
+        self._quorum_future = self._executor.submit(self._async_quorum)
+        if not self._use_async_quorum:
+            self._quorum_future.result()
 
-        # TODO: broadcast the weights iff step 0/1 to ensure initial model state
-        # is in sync
+            # we are forcing healing at the beginning so we're in a good state
+            # and don't need to zero_grad
+            self._healing = False
 
+    def _async_quorum(self) -> None:
         (
             quorum_id,
             replica_rank,
@@ -121,8 +144,9 @@ class Manager:
             step=self._step,
             checkpoint_server_addr=self._ckpt_server.address(),
         )
-        # TODO: change to be num_max when implementing zero_grad
-        self._participating_replicas = replica_world
+        self._participating_replicas = (
+            num_max if self._use_async_quorum else replica_world
+        )
 
         if quorum_id != self._quorum_id:
             logger.info(f"reconfiguring for quorum_id {quorum_id}")
@@ -142,7 +166,6 @@ class Manager:
 
             state_dict = CheckpointServer.load_from_address(checkpoint_server_address)
             self._load_state_dict(state_dict)
-            self._healing = False
 
             self._step = max_step
 
@@ -150,6 +173,7 @@ class Manager:
         if not self._errored:
             for work, tensors in self._pending_work:
                 try:
+                    # TODO: increase timeout when waiting when healing
                     work.wait()
                 except:
                     logger.exception(
@@ -166,9 +190,15 @@ class Manager:
 
         self._pending_work = []
 
-        should_commit = not self._errored
+        logger.info("should_commit")
+
+        enough_replicas = self._participating_replicas >= self._min_replica_size
+        local_should_commit = enough_replicas and not self._errored
         should_commit = self._client.should_commit(
-            self._rank, self._step, should_commit
+            self._rank, self._step, local_should_commit
+        )
+        logger.info(
+            f"should_commit={should_commit} enough_replicas={enough_replicas}, errored={self._errored}"
         )
 
         self._ckpt_server.disallow_checkpoint()
