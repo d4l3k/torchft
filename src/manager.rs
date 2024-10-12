@@ -45,6 +45,7 @@ pub async fn manager_client_new(addr: String) -> Result<ManagerServiceClient<Cha
 
     info!("ManagerClient: establishing connection to {}", &addr);
     let conn = Endpoint::new(addr.clone())?
+        .timeout(Duration::from_secs(10))
         .connect_timeout(Duration::from_secs(10))
         .connect()
         .await?;

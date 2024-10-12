@@ -25,6 +25,7 @@ def state_dict():
 
 manager = Manager(
     pg=ProcessGroupGloo(),
+    min_replica_size=2,
     load_state_dict=load_state_dict,
     state_dict=state_dict,
 )

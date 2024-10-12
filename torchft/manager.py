@@ -90,6 +90,9 @@ class Manager:
         self._participating_replicas = -1
         self._pending_work: Tuple[Work, List[torch.Tensor]] = []
 
+        # first step is 1
+        self._should_step = True
+
     def shutdown(self) -> None:
         self._ckpt_server.shutdown()
 
@@ -113,7 +116,8 @@ class Manager:
             self._errored = True
 
     def step(self) -> None:
-        self._step += 1
+        if self._should_step:
+            self._step += 1
         self._errored = False
         self._healing = False
         self._ckpt_server.allow_checkpoint(self._step)
@@ -202,6 +206,9 @@ class Manager:
         )
 
         self._ckpt_server.disallow_checkpoint()
+
+        # decide whether we're in a healthy state to increase the step count
+        self._should_step = should_commit
 
         return should_commit
 
