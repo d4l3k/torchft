@@ -68,7 +68,9 @@ class TestManager(TestCase):
 
         manager.step()
         manager.allreduce_grad("a tensor")
+        self.assertEqual(len(manager._pending_work), 1)
         self.assertTrue(manager.should_commit())
+        self.assertEqual(len(manager._pending_work), 0)
 
         self.assertEqual(manager._quorum_id, 123)
         self.assertEqual(manager._step, 1)

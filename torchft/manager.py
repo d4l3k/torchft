@@ -5,7 +5,7 @@ from typing import Dict
 import time
 import logging
 
-from torch.distributed import TCPStore, PrefixStore
+from torch.distributed import TCPStore, PrefixStore, Work
 from torch.optim import Optimizer
 
 # pyre-fixme[21]: can't find rust module
@@ -75,6 +75,7 @@ class Manager:
         self._quorum_id = -1
         self._errored = False
         self._healing = False
+        self._pending_work: Tuple[Work, List[torch.Tensor]] = []
 
     def shutdown(self) -> None:
         self._ckpt_server.shutdown()
@@ -83,9 +84,8 @@ class Manager:
         if self._errored:
             return
         try:
-            handle = self._pg.allreduce(tensor, None)
-            handle.wait()
-            # TODO: rescale tensor according to num_max
+            work = self._pg.allreduce(tensor, None)
+            self._pending_work.append((work, [tensor]))
         except Exception as e:
             logger.exception("got exception in all reduce -- skipping remaining")
             self._errored = True
@@ -149,6 +149,15 @@ class Manager:
             self._step = max_step
 
     def should_commit(self) -> bool:
+        for work, tensors in self._pending_work:
+            try:
+                work.wait()
+                # TODO: rescale tensor according to num_max
+            except:
+                logger.exception("got exception in all reduce -- skipping remaining")
+                self._errored = True
+        self._pending_work = []
+
         should_commit = not self._errored
         should_commit = self._client.should_commit(
             self._rank, self._step, should_commit
