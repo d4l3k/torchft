@@ -67,10 +67,10 @@ class ProcessGroupGloo(ProcessGroup):
 
         # TODO: set lower timeout
         # pyre-fixme[16]: no attribute ProcessGroupGloo
-        self._pg = ProcessGroupGloo(store, rank, world_size)
+        self._pg = BaseProcessGroupGloo(store, rank, world_size)
 
     def allreduce(self, tensors: List[torch.Tensor], opts: object) -> Work:
-        return self._pg.allreduce(tensor)
+        return self._pg.allreduce(tensors, opts)
 
 
 class ProcessGroupDummy(ProcessGroup):

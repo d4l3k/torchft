@@ -3,10 +3,24 @@ from unittest import TestCase
 import torch
 from torch.distributed import TCPStore, ReduceOp
 
-from torchft.process_group import ProcessGroupBabyGloo
+from torchft.process_group import ProcessGroupBabyGloo, ProcessGroupGloo
 
 
 class ProcessGroupTest(TestCase):
+    def test_gloo(self) -> None:
+        store = TCPStore(
+            host_name="localhost", port=0, is_master=True, wait_for_workers=False
+        )
+
+        store_addr = f"localhost:{store.port}/prefix"
+        pg = ProcessGroupGloo()
+        pg.configure(store_addr, 0, 1)
+
+        at = torch.tensor([2])
+
+        a_work = pg.allreduce([at], ReduceOp.SUM)
+        a_work.wait()
+
     def test_baby_gloo(self) -> None:
         store = TCPStore(
             host_name="localhost", port=0, is_master=True, wait_for_workers=False
