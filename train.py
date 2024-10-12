@@ -36,7 +36,7 @@ optimizer = Optimizer(manager, optim.AdamW(m.parameters()))
 
 print(m)
 
-for i in range(1000):
+for i in range(10000):
     batch = torch.rand(2, 2, device=device)
 
     # must be called at the beginning of each train loop
