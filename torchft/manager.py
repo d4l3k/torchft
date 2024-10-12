@@ -5,7 +5,7 @@ from typing import Dict
 import time
 import logging
 
-from torch.distributed import TCPStore, PrefixStore, Work
+from torch.distributed import TCPStore, PrefixStore, Work, ReduceOp
 from torch.optim import Optimizer
 
 # pyre-fixme[21]: can't find rust module
@@ -75,6 +75,7 @@ class Manager:
         self._quorum_id = -1
         self._errored = False
         self._healing = False
+        self._participating_replicas = -1
         self._pending_work: Tuple[Work, List[torch.Tensor]] = []
 
     def shutdown(self) -> None:
@@ -84,7 +85,7 @@ class Manager:
         if self._errored:
             return
         try:
-            work = self._pg.allreduce(tensor, None)
+            work = self._pg.allreduce(tensor, ReduceOp.SUM)
             self._pending_work.append((work, [tensor]))
         except Exception as e:
             logger.exception("got exception in all reduce -- skipping remaining")
@@ -117,6 +118,8 @@ class Manager:
             step=self._step,
             checkpoint_server_addr=self._ckpt_server.address(),
         )
+        # TODO: change to be num_max when implementing zero_grad
+        self._participating_replicas = replica_world
 
         if quorum_id != self._quorum_id:
             logger.info(f"reconfiguring for quorum_id {quorum_id}")
@@ -152,10 +155,14 @@ class Manager:
         for work, tensors in self._pending_work:
             try:
                 work.wait()
-                # TODO: rescale tensor according to num_max
             except:
                 logger.exception("got exception in all reduce -- skipping remaining")
                 self._errored = True
+                continue
+
+            for tensor in tensors:
+                tensor /= self._participating_replicas
+
         self._pending_work = []
 
         should_commit = not self._errored

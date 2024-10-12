@@ -1,6 +1,7 @@
 from unittest import TestCase
 from unittest.mock import patch, create_autospec, MagicMock
 
+import torch
 from torch.distributed import TCPStore
 
 from torchft.torchft import ManagerClient
@@ -67,7 +68,7 @@ class TestManager(TestCase):
         self.assertEqual(manager._step, 0)
 
         manager.step()
-        manager.allreduce_grad("a tensor")
+        manager.allreduce_grad(torch.tensor([1.0]))
         self.assertEqual(len(manager._pending_work), 1)
         self.assertTrue(manager.should_commit())
         self.assertEqual(len(manager._pending_work), 0)
@@ -100,7 +101,7 @@ class TestManager(TestCase):
         self.assertEqual(manager._step, 0)
 
         manager.step()
-        manager.allreduce_grad("a tensor")
+        manager.allreduce_grad(torch.tensor([1.0]))
         self.assertTrue(manager.should_commit())
 
         self.assertEqual(manager._quorum_id, 123)
@@ -129,13 +130,14 @@ class TestManager(TestCase):
         self.assertEqual(manager._step, 0)
 
         manager.step()
-        manager.allreduce_grad("a tensor")
+        manager.allreduce_grad(torch.tensor([1.0]))
         self.assertEqual(manager._pg.allreduce.call_count, 1)
 
         # inject failure
         manager._pg.allreduce.side_effect = RuntimeError("injected failure")
-        manager.allreduce_grad("a tensor")
-        manager.allreduce_grad("a tensor")  # second should be a noop
+        manager.allreduce_grad(torch.tensor([1.0]))
+        # this should be skipped due to error
+        manager.allreduce_grad(torch.tensor([1.0]))
         self.assertEqual(manager._pg.allreduce.call_count, 2)
 
         self.assertFalse(manager.should_commit())
@@ -155,5 +157,5 @@ class TestManager(TestCase):
         manager._pg.allreduce.side_effect = None
 
         manager.step()
-        manager.allreduce_grad("a tensor")
+        manager.allreduce_grad(torch.tensor([1.0]))
         self.assertTrue(manager.should_commit())
