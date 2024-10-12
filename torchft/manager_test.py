@@ -107,6 +107,7 @@ class TestManager(TestCase):
         self.assertEqual(manager._quorum_id, 123)
         self.assertEqual(manager._step, 20)
         self.assertEqual(manager._pg.allreduce.call_count, 1)
+        self.assertEqual(manager._pg.allreduce.return_value.wait.call_count, 1)
 
         self.assertEqual(self.load_state_dict.call_count, 1)
 
@@ -133,17 +134,22 @@ class TestManager(TestCase):
         manager.allreduce_grad(torch.tensor([1.0]))
         self.assertEqual(manager._pg.allreduce.call_count, 1)
 
-        # inject failure
+        # inject failure when work queued
         manager._pg.allreduce.side_effect = RuntimeError("injected failure")
         manager.allreduce_grad(torch.tensor([1.0]))
+        self.assertTrue(manager._errored)
         # this should be skipped due to error
         manager.allreduce_grad(torch.tensor([1.0]))
         self.assertEqual(manager._pg.allreduce.call_count, 2)
+        self.assertEqual(manager._pg.allreduce.return_value.wait.call_count, 0)
 
         self.assertFalse(manager.should_commit())
         self.assertTrue(manager._errored)
 
-        # recover on next step
+        # cleanup
+        manager._pg.allreduce.side_effect = None
+
+        # inject failure when worked waited
         client_mock().quorum.return_value = (
             123,  # quorum_id
             1,  # replica_rank
@@ -154,7 +160,30 @@ class TestManager(TestCase):
             2,  # num_max
             False,  # heal
         )
-        manager._pg.allreduce.side_effect = None
+        manager.step()
+        manager._pg.allreduce.return_value.wait.side_effect = RuntimeError(
+            "injected failure"
+        )
+        manager.allreduce_grad(torch.tensor([1.0]))
+        self.assertFalse(manager._errored)
+        self.assertFalse(manager.should_commit())
+        self.assertTrue(manager._errored)
+        self.assertEqual(manager._pg.allreduce.return_value.wait.call_count, 1)
+
+        # cleanup
+        manager._pg.allreduce.return_value.wait.side_effect = None
+
+        # recover on next step
+        client_mock().quorum.return_value = (
+            123,  # quorum_id
+            1,  # replica_rank
+            2,  # replica_world
+            "manager address",
+            f"localhost:{self.store.port}",
+            3,  # max_step
+            2,  # num_max
+            False,  # heal
+        )
 
         manager.step()
         manager.allreduce_grad(torch.tensor([1.0]))

@@ -84,8 +84,11 @@ class Manager:
     def allreduce_grad(self, tensor) -> None:
         if self._errored:
             return
+
         try:
-            work = self._pg.allreduce(tensor, ReduceOp.SUM)
+            # Run the allreduce async and save the work object so we can wait on
+            # it later.
+            work = self._pg.allreduce([tensor], ReduceOp.SUM)
             self._pending_work.append((work, [tensor]))
         except Exception as e:
             logger.exception("got exception in all reduce -- skipping remaining")
@@ -123,16 +126,8 @@ class Manager:
 
         if quorum_id != self._quorum_id:
             logger.info(f"reconfiguring for quorum_id {quorum_id}")
-            # needs reconfig
-            addr, _, port = store_address.rpartition(":")
-            store = TCPStore(
-                host_name=addr,
-                port=int(port),
-                is_master=False,
-                wait_for_workers=False,
-            )
-            store = PrefixStore(f"torchft/{quorum_id}/{self._rank}", store)
-            self._pg.configure(store, replica_rank, replica_world)
+            store_prefixed_addr = f"{store_address}/torchft/{quorum_id}/{self._rank}"
+            self._pg.configure(store_prefixed_addr, replica_rank, replica_world)
             self._quorum_id = quorum_id
 
         # See manager.rs for healing conditions
@@ -152,16 +147,22 @@ class Manager:
             self._step = max_step
 
     def should_commit(self) -> bool:
-        for work, tensors in self._pending_work:
-            try:
-                work.wait()
-            except:
-                logger.exception("got exception in all reduce -- skipping remaining")
-                self._errored = True
-                continue
+        if not self._errored:
+            for work, tensors in self._pending_work:
+                try:
+                    work.wait()
+                except:
+                    logger.exception(
+                        "got exception in all reduce -- skipping remaining"
+                    )
+                    self._errored = True
+                    break
 
-            for tensor in tensors:
-                tensor /= self._participating_replicas
+                # On CUDA devices this operation will run async with the
+                # should_commit call below thus overlapping with the communication
+                # overhead.
+                for tensor in tensors:
+                    tensor /= self._participating_replicas
 
         self._pending_work = []
 
