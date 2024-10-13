@@ -5,6 +5,7 @@ from typing import Dict
 import time
 import logging
 from concurrent.futures import ThreadPoolExecutor
+from datetime import timedelta
 
 import torch
 from torch.distributed import TCPStore, PrefixStore, Work, ReduceOp
@@ -36,10 +37,12 @@ class Manager:
         min_replica_size: int,
         port: int = MANAGER_DEFAULT_PORT,
         use_async_quorum: bool = True,
+        timeout: timedelta = timedelta(seconds=60),
     ) -> None:
         self._load_state_dict = load_state_dict
         self._state_dict = state_dict
         self._use_async_quorum = use_async_quorum
+        self._timeout = timeout
 
         store_addr = os.environ["MASTER_ADDR"]
         store_port = int(os.environ["MASTER_PORT"])
@@ -81,7 +84,7 @@ class Manager:
 
         addr = self._store.get(MANAGER_ADDR_KEY).decode("utf-8")
         # pyre-fixme[16]: can't find rust module
-        self._client = ManagerClient(addr)
+        self._client = ManagerClient(addr, timeout=timeout)
 
         self._step = 0
         self._quorum_id = -1
@@ -165,7 +168,7 @@ class Manager:
 
             logger.info(f"fetching checkpoint server address from {address}")
             # pyre-fixme[16]: can't find rust module
-            primary_client = ManagerClient(address)
+            primary_client = ManagerClient(address, timeout=self._timeout)
             checkpoint_server_address = primary_client.checkpoint_address(self._rank)
 
             state_dict = CheckpointServer.load_from_address(checkpoint_server_address)

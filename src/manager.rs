@@ -1,9 +1,9 @@
 use std::collections::HashMap;
+use std::collections::HashSet;
 use std::sync::Arc;
 use std::time::Duration;
 
 use anyhow::Result;
-use log::info;
 use tokio::sync::broadcast;
 use tokio::sync::Mutex;
 use tonic::transport::Server;
@@ -20,14 +20,20 @@ use crate::torchftpb::{
     ShouldCommitResponse,
 };
 
+#[cfg(not(test))]
+use log::{info, warn};
+
+#[cfg(test)]
+use std::{println as info, println as warn};
+
 struct ManagerState {
     channel: broadcast::Sender<Quorum>,
     participants: u64,
     checkpoint_servers: HashMap<i64, String>,
 
     should_commit_channel: broadcast::Sender<bool>,
-    should_commit_failures: i64,
-    should_commit_count: i64,
+    should_commit_failures: HashSet<i64>,
+    should_commit_count: HashSet<i64>,
 }
 
 pub struct Manager {
@@ -40,11 +46,15 @@ pub struct Manager {
     state: Mutex<ManagerState>,
 }
 
-pub async fn manager_client_new(addr: String) -> Result<ManagerServiceClient<Channel>> {
+pub async fn manager_client_new(
+    addr: String,
+    timeout: Duration,
+) -> Result<ManagerServiceClient<Channel>> {
     // TODO add retries + backoff so other nodes can start before the rank0 comes up
 
     info!("ManagerClient: establishing connection to {}", &addr);
     let conn = Endpoint::new(addr.clone())?
+        .timeout(timeout)
         .connect_timeout(Duration::from_secs(60))
         .connect()
         .await?;
@@ -76,8 +86,8 @@ impl Manager {
                 checkpoint_servers: HashMap::new(),
 
                 should_commit_channel: should_commit_tx,
-                should_commit_count: 0,
-                should_commit_failures: 0,
+                should_commit_count: HashSet::new(),
+                should_commit_failures: HashSet::new(),
             }),
         })
     }
@@ -241,29 +251,40 @@ impl ManagerService for Arc<Manager> {
         request: Request<ShouldCommitRequest>,
     ) -> Result<Response<ShouldCommitResponse>, Status> {
         let req = request.into_inner();
+        let rank = req.rank;
+
+        info!(
+            "should_commit request from {} should_commit={}",
+            rank, req.should_commit
+        );
+
+        // TODO: check step count
 
         let mut rx = {
             let mut state = self.state.lock().await;
 
             if !req.should_commit {
-                state.should_commit_failures += 1;
+                state.should_commit_failures.insert(rank);
             }
-            state.should_commit_count += 1;
+            state.should_commit_count.insert(rank);
 
             let rx = state.should_commit_channel.subscribe();
 
-            if state.should_commit_count == self.world_size as i64 {
+            if state.should_commit_count.len() == self.world_size as usize {
+                let decision = state.should_commit_failures.len() == 0;
+                info!("should_commit completed should_commit={}", decision);
+
                 state
                     .should_commit_channel
-                    .send(state.should_commit_failures == 0)
+                    .send(decision)
                     .map_err(|e| Status::from_error(e.into()))?;
-            }
 
-            // reset state
-            state.should_commit_count = 0;
-            state.should_commit_failures = 0;
-            let (should_commit_tx, _) = broadcast::channel(16);
-            state.should_commit_channel = should_commit_tx;
+                // reset state
+                state.should_commit_count.clear();
+                state.should_commit_failures.clear();
+                let (should_commit_tx, _) = broadcast::channel(16);
+                state.should_commit_channel = should_commit_tx;
+            }
 
             rx
         };
@@ -277,5 +298,69 @@ impl ManagerService for Arc<Manager> {
             should_commit: should_commit,
         };
         Ok(Response::new(reply))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use tokio::time::sleep;
+
+    use super::*;
+
+    async fn should_commit(rank: i64, should_commit: bool) -> Result<ShouldCommitResponse> {
+        let mut client = manager_client_new(
+            "http://localhost:29531".to_string(),
+            Duration::from_secs(10),
+        )
+        .await?;
+
+        let request = tonic::Request::new(ShouldCommitRequest {
+            rank: rank,
+            step: 1,
+            should_commit: should_commit,
+        });
+        let resp = client.should_commit(request).await?;
+
+        Ok(resp.into_inner())
+    }
+
+    #[tokio::test]
+    async fn test_should_commit() -> Result<()> {
+        let manager = Manager::new(
+            "repid".to_string(),
+            "lighthouse".to_string(),
+            "addr".to_string(),
+            "0.0.0.0:29531".to_string(),
+            "store_addr".to_string(),
+            2,
+        );
+        println!("manager spawn");
+        let manager_fut = tokio::spawn(manager.run());
+
+        println!("should_commit1");
+
+        let fut_a = tokio::spawn(should_commit(0, true));
+        let fut_b = tokio::spawn(should_commit(1, true));
+        let resp_a = fut_a.await??;
+        let resp_b = fut_b.await??;
+
+        assert!(resp_a.should_commit);
+        assert!(resp_b.should_commit);
+
+        println!("should_commit2");
+
+        let fut_a = tokio::spawn(should_commit(0, true));
+        let fut_b = tokio::spawn(should_commit(1, false));
+        let resp_a = fut_a.await??;
+        let resp_b = fut_b.await??;
+
+        assert!(!resp_a.should_commit);
+        assert!(!resp_b.should_commit);
+
+        println!("aborting");
+
+        manager_fut.abort();
+
+        Ok(())
     }
 }

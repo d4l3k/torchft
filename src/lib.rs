@@ -2,6 +2,7 @@ pub mod coordinator;
 pub mod lighthouse;
 pub mod manager;
 
+use core::time::Duration;
 use std::env;
 use std::sync::Arc;
 
@@ -69,21 +70,23 @@ impl Manager {
 struct ManagerClient {
     runtime: Runtime,
     client: ManagerServiceClient<Channel>,
+    timeout: Duration,
 }
 
 #[pymethods]
 impl ManagerClient {
     #[new]
-    fn new(py: Python<'_>, addr: String) -> PyResult<Self> {
+    fn new(py: Python<'_>, addr: String, timeout: Duration) -> PyResult<Self> {
         py.allow_threads(move || {
             let runtime = Runtime::new().unwrap();
             let client = runtime
-                .block_on(manager::manager_client_new(addr))
+                .block_on(manager::manager_client_new(addr, timeout))
                 .map_err(|e| PyRuntimeError::new_err(e.to_string()))?;
 
             Ok(Self {
                 runtime: runtime,
                 client: client,
+                timeout: timeout,
             })
         })
     }
@@ -96,11 +99,15 @@ impl ManagerClient {
         checkpoint_server_addr: String,
     ) -> PyResult<(i64, i64, i64, String, String, i64, i64, bool)> {
         py.allow_threads(move || {
-            let request = tonic::Request::new(ManagerQuorumRequest {
+            let mut request = tonic::Request::new(ManagerQuorumRequest {
                 rank: rank,
                 step: step,
                 checkpoint_server_addr: checkpoint_server_addr,
             });
+            // This notifies the server about the timeout but doesn't affect the
+            // endpoint timeout which we set on client creation.
+            request.set_timeout(self.timeout);
+
             let response = self
                 .runtime
                 .block_on(self.client.quorum(request))
@@ -121,7 +128,11 @@ impl ManagerClient {
 
     fn checkpoint_address(&mut self, py: Python<'_>, rank: i64) -> PyResult<String> {
         py.allow_threads(move || {
-            let request = tonic::Request::new(CheckpointAddressRequest { rank: rank });
+            let mut request = tonic::Request::new(CheckpointAddressRequest { rank: rank });
+            // This notifies the server about the timeout but doesn't affect the
+            // endpoint timeout which we set on client creation.
+            request.set_timeout(self.timeout);
+
             let response = self
                 .runtime
                 .block_on(self.client.checkpoint_address(request))
@@ -139,11 +150,15 @@ impl ManagerClient {
         should_commit: bool,
     ) -> PyResult<bool> {
         py.allow_threads(move || {
-            let request = tonic::Request::new(ShouldCommitRequest {
+            let mut request = tonic::Request::new(ShouldCommitRequest {
                 rank: rank,
                 step: step,
                 should_commit: should_commit,
             });
+            // This notifies the server about the timeout but doesn't affect the
+            // endpoint timeout which we set on client creation.
+            request.set_timeout(self.timeout);
+
             let response = self
                 .runtime
                 .block_on(self.client.should_commit(request))
