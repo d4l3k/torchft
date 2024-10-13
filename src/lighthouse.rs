@@ -27,6 +27,7 @@ struct State {
     channel: broadcast::Sender<Quorum>,
     participants: HashMap<String, QuorumMemberDetails>,
     prev_quorum: Option<Quorum>,
+    quorum_id: i64,
 }
 
 pub struct Lighthouse {
@@ -66,6 +67,7 @@ impl Lighthouse {
                 participants: HashMap::new(),
                 channel: tx,
                 prev_quorum: None,
+                quorum_id: 0,
             }),
             opt: opt,
         })
@@ -122,47 +124,55 @@ impl Lighthouse {
         true
     }
 
-    pub async fn _run_quorum(self: Arc<Self>) -> Result<()> {
-        let mut quorum_id = 0;
-        loop {
-            let quorum_met = self.quorum_valid().await;
-            if quorum_met {
-                let mut state = self.state.lock().await;
-                let mut participants: Vec<QuorumMember> = state
-                    .participants
-                    .values()
-                    .map(|details| details.member.clone())
-                    .collect();
+    async fn _quorum_tick(self: Arc<Self>) -> Result<()> {
+        // TODO: these should probably run under the same lock
+        let quorum_met = self.quorum_valid().await;
+        if quorum_met {
+            let mut state = self.state.lock().await;
+            let mut participants: Vec<QuorumMember> = state
+                .participants
+                .values()
+                .map(|details| details.member.clone())
+                .collect();
 
-                // Sort by replica ID to get a consistent ordering across runs.
-                participants.sort_by_key(|p| p.replica_id.clone());
+            // Sort by replica ID to get a consistent ordering across runs.
+            participants.sort_by_key(|p| p.replica_id.clone());
 
-                // only increment quorum ID if something about the quorum
-                // changed (members/addresses/etc)
-                if state.prev_quorum.is_none()
-                    || quorum_changed(
-                        &participants,
-                        &state.prev_quorum.as_ref().unwrap().participants,
-                    )
-                {
-                    quorum_id += 1;
-                    info!("Detected quorum change, bumping quorum_id to {}", quorum_id);
-                }
-
-                let quorum = Quorum {
-                    quorum_id: quorum_id,
-                    participants: participants,
-                };
-
-                info!("Quorum! {:?}", quorum);
-
-                state.prev_quorum = Some(quorum.clone());
-                state.participants.clear();
-                match state.channel.send(quorum) {
-                    Ok(_) => (),
-                    Err(e) => error!("failed to send quorum {}", e),
-                }
+            // only increment quorum ID if something about the quorum
+            // changed (members/addresses/etc)
+            if state.prev_quorum.is_none()
+                || quorum_changed(
+                    &participants,
+                    &state.prev_quorum.as_ref().unwrap().participants,
+                )
+            {
+                state.quorum_id += 1;
+                info!(
+                    "Detected quorum change, bumping quorum_id to {}",
+                    state.quorum_id
+                );
             }
+
+            let quorum = Quorum {
+                quorum_id: state.quorum_id,
+                participants: participants,
+            };
+
+            info!("Quorum! {:?}", quorum);
+
+            state.prev_quorum = Some(quorum.clone());
+            state.participants.clear();
+            match state.channel.send(quorum) {
+                Ok(_) => (),
+                Err(e) => error!("failed to send quorum {}", e),
+            }
+        }
+        Ok(())
+    }
+
+    pub async fn _run_quorum(self: Arc<Self>) -> Result<()> {
+        loop {
+            self.clone()._quorum_tick().await?;
 
             sleep(Duration::from_millis(self.opt.quorum_tick_ms)).await;
         }
@@ -217,6 +227,12 @@ impl LighthouseService for Arc<Lighthouse> {
             );
             state.channel.subscribe()
         };
+
+        // proactively run quorum tick
+        self.clone()
+            ._quorum_tick()
+            .await
+            .map_err(|e| Status::from_error(e.into()))?;
 
         let quorum = rx.recv().await.map_err(|e| Status::from_error(e.into()))?;
 
