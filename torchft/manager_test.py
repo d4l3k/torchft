@@ -47,10 +47,22 @@ class TestManager(TestCase):
         manager = self._create_manager()
 
         state_dict = manager.state_dict()
-        self.assertEqual(state_dict, {"step": 0})
+        self.assertEqual(
+            state_dict,
+            {
+                "step": 0,
+                "batches_committed": 0,
+            },
+        )
 
-        manager.load_state_dict({"step": 1234})
-        self.assertEqual(manager._step, 1234)
+        manager.load_state_dict(
+            {
+                "step": 1234,
+                "batches_committed": 2345,
+            }
+        )
+        self.assertEqual(manager.current_step(), 1234)
+        self.assertEqual(manager.batches_committed(), 2345)
 
     @patch("torchft.manager.ManagerClient", autospec=True)
     def test_quorum_happy(self, client_mock) -> None:
@@ -70,6 +82,7 @@ class TestManager(TestCase):
 
         self.assertEqual(manager._quorum_id, -1)
         self.assertEqual(manager._step, 0)
+        self.assertEqual(manager.batches_committed(), 0)
 
         manager.step()
         manager.allreduce_grad(torch.tensor([1.0]))
@@ -80,6 +93,9 @@ class TestManager(TestCase):
         self.assertEqual(manager._quorum_id, 123)
         self.assertEqual(manager._step, 1)
         self.assertEqual(manager._pg.allreduce.call_count, 1)
+
+        manager.step()
+        self.assertEqual(manager.batches_committed(), 2)
 
     @patch("torchft.manager.ManagerClient", autospec=True)
     def test_quorum_heal_sync(self, client_mock) -> None:
@@ -160,6 +176,7 @@ class TestManager(TestCase):
         # failed to commit so no step
         manager.step()
         self.assertEqual(manager._step, 20)
+        self.assertEqual(manager.batches_committed(), 0)
 
     @patch("torchft.manager.ManagerClient", autospec=True)
     def test_quorum_heal_async_zero_grad(self, client_mock) -> None:
@@ -204,6 +221,7 @@ class TestManager(TestCase):
 
         manager.step()
         self.assertEqual(manager._step, 21)
+        self.assertEqual(manager.batches_committed(), 1)
 
     @patch("torchft.manager.ManagerClient", autospec=True)
     def test_allreduce_error(self, client_mock) -> None:

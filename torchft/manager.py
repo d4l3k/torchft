@@ -51,7 +51,12 @@ class Manager:
         self._rank = rank
         self._min_replica_size = min_replica_size
 
-        self._ckpt_server = CheckpointServer(state_dict)
+        self._ckpt_server = CheckpointServer(
+            lambda: {
+                "user": state_dict(),
+                "torchft": self.state_dict(),
+            }
+        )
         self._executor = ThreadPoolExecutor(max_workers=1)
         self._quorum_future = None
 
@@ -90,8 +95,9 @@ class Manager:
         self._quorum_id = -1
         self._errored = False
         self._healing = False
-        self._participating_replicas = -1
+        self._participating_replicas = 0
         self._pending_work: Tuple[Work, List[torch.Tensor]] = []
+        self._batches_committed = 0
 
         # first step is 1
         self._should_step = True
@@ -121,6 +127,8 @@ class Manager:
     def step(self) -> None:
         if self._should_step:
             self._step += 1
+            self._batches_committed += self._participating_replicas
+
         self._errored = False
         self._healing = False
         self._ckpt_server.allow_checkpoint(self._step)
@@ -172,8 +180,11 @@ class Manager:
             checkpoint_server_address = primary_client.checkpoint_address(self._rank)
 
             state_dict = CheckpointServer.load_from_address(checkpoint_server_address)
-            self._load_state_dict(state_dict)
+            self._load_state_dict(state_dict["user"])
+            self.load_state_dict(state_dict["torchft"])
 
+            # This isn't strictly needed as loading the state_dict above should
+            # restore the correct step but it makes writing tests simpler.
             self._step = max_step
 
     def should_commit(self) -> bool:
@@ -217,6 +228,25 @@ class Manager:
 
     def load_state_dict(self, state_dict: Dict[str, int]) -> None:
         self._step = state_dict["step"]
+        self._batches_committed = state_dict["batches_committed"]
 
     def state_dict(self) -> Dict[str, int]:
-        return {"step": self._step}
+        return {"step": self._step, "batches_committed": self._batches_committed}
+
+    def current_step(self) -> int:
+        """
+        Get the current step count.
+
+        This number is incremented on .step()
+        """
+        return self._step
+
+    def batches_committed(self) -> int:
+        """
+        Get the total number of batches committed across all steps and replicas.
+        5 replicas participating in 2 steps is 10 batches but may be more than
+        10 examples depending on batch size.
+
+        This number is incremented on .step()
+        """
+        return self._batches_committed
