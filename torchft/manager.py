@@ -105,7 +105,7 @@ class Manager:
     def shutdown(self) -> None:
         self._ckpt_server.shutdown()
 
-    def allreduce_grad(self, grad: torch.Tensor) -> None:
+    def allreduce_grad(self, grad: torch.Tensor) -> torch.futures.Future[torch.Tensor]:
         if self._errored:
             return
 
@@ -120,9 +120,13 @@ class Manager:
             # it later.
             work = self._pg.allreduce([grad], ReduceOp.SUM)
             self._pending_work.append((work, [grad]))
+            return work.get_future()
         except Exception as e:
             logger.exception("got exception in all reduce -- skipping remaining")
             self._errored = True
+            fut = torch.futures.Future()
+            fut.set_exception(e)
+            return fut
 
     def step(self) -> None:
         if self._should_step:

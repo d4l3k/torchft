@@ -1,16 +1,18 @@
 from abc import ABC
 import logging
-from typing import Type, List
+from typing import Type, List, Optional
+from datetime import timedelta
 
+from torch.futures import Future
 from torch.distributed import (
     ProcessGroup as BaseProcessGroup,
-    Work,
     Store,
     TCPStore,
     PrefixStore,
     ProcessGroupGloo as BaseProcessGroupGloo,
     ProcessGroupNCCL as BaseProcessGroupNCCL,
 )
+from torch.distributed.distributed_c10d import Work
 import torch
 import torch.multiprocessing as mp
 
@@ -52,6 +54,14 @@ class ProcessGroup(BaseProcessGroup):
     def allreduce(self, tensors: List[torch.Tensor], opts: object) -> Work:
         raise NotImplementedError("not implemented")
 
+    def allgather(
+        self, output: List[List[torch.Tensor]], input: List[torch.Tensor], opts: object
+    ) -> Work:
+        raise NotImplementedError("not implemented")
+
+    def broadcast(self, vec: List[torch.Tensor], opts: object) -> Work:
+        raise NotImplementedError("not implemented")
+
     def size(self) -> int:
         raise NotImplementedError("not implemented")
 
@@ -79,6 +89,19 @@ class ProcessGroupGloo(ProcessGroup):
         return self._pg.size()
 
 
+class DummyWork(Work):
+    def __init__(self) -> None:
+        super().__init__()
+
+    def get_future(self) -> Future:
+        future: Future = Future()
+        future.set_result(None)
+        return future
+
+    def wait(self, timeout: Optional[timedelta] = None) -> bool:
+        return True
+
+
 class ProcessGroupDummy(ProcessGroup):
     def __init__(self) -> None:
         super().__init__(0, 1)
@@ -87,8 +110,21 @@ class ProcessGroupDummy(ProcessGroup):
         pass
 
     def allreduce(self, tensors: List[torch.Tensor], opts: object) -> Work:
-        # TODO: return work object
-        pass
+        print("allreduce")
+        return DummyWork()
+
+    def allgather(
+        self, output: List[List[torch.Tensor]], input: List[torch.Tensor], opts: object
+    ) -> Work:
+        print("allgather")
+        return DummyWork()
+
+    def broadcast(self, vec: List[torch.Tensor], opts: object) -> Work:
+        print("broadcast")
+        return DummyWork()
+
+    def getBackendName(self) -> str:
+        return "foo"
 
     def size(self) -> int:
         return 1
@@ -103,9 +139,10 @@ class BabyWork(Work):
         self._op_id = op_id
         self._timeout = timeout
 
-    def wait(self) -> None:
+    def wait(self) -> bool:
         self._tx.put(("wait", self._op_id), timeout=self._timeout)
         assert _get(self._rx, self._timeout) == self._op_id
+        return True
 
 
 class ProcessGroupBaby(ProcessGroup):
