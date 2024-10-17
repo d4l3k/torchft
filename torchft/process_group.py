@@ -9,12 +9,10 @@ from torch.distributed import (
     TCPStore,
     PrefixStore,
     ProcessGroupGloo as BaseProcessGroupGloo,
+    ProcessGroupNCCL as BaseProcessGroupNCCL,
 )
 import torch
 import torch.multiprocessing as mp
-
-# pyre-fixme[21]: no attribute ProcessGroupGloo
-from torch.distributed import ProcessGroupGloo
 
 logger = logging.getLogger(__name__)
 
@@ -169,4 +167,8 @@ class ProcessGroupBaby(ProcessGroup):
 
 
 class ProcessGroupBabyGloo(ProcessGroupBaby):
+    PG_CLASS = BaseProcessGroupGloo
+
+
+class ProcessGroupBabyNCCL(ProcessGroupBaby):
     PG_CLASS = BaseProcessGroupGloo
