@@ -16,6 +16,8 @@ class ProcessGroupTest(TestCase):
         pg = ProcessGroupGloo()
         pg.configure(store_addr, 0, 1)
 
+        self.assertEqual(pg.size(), 1)
+
         at = torch.tensor([2])
 
         a_work = pg.allreduce([at], ReduceOp.SUM)
@@ -34,8 +36,10 @@ class ProcessGroupTest(TestCase):
         a.configure(store_addr, 0, 2)
         b.configure(store_addr, 1, 2)
 
-        at = torch.tensor([1]).share_memory_()
-        bt = torch.tensor([2]).share_memory_()
+        self.assertEqual(a.size(), 2)
+
+        at = torch.tensor([1])
+        bt = torch.tensor([2])
 
         a_work = a.allreduce([at], ReduceOp.SUM)
         b_work = b.allreduce([bt], ReduceOp.SUM)
@@ -44,6 +48,3 @@ class ProcessGroupTest(TestCase):
         b_work.wait()
 
         torch.testing.assert_close(at, bt)
-
-        with self.assertRaisesRegex(AssertionError, "shared"):
-            a_work = a.allreduce([torch.tensor(10)], ReduceOp.SUM)

@@ -46,9 +46,14 @@ def create_store(store_addr: str) -> Store:
 
 
 class ProcessGroup(BaseProcessGroup):
-    def configure(self, store_addr: str, rank: int, world_size: int) -> None: ...
+    def configure(self, store_addr: str, rank: int, world_size: int) -> None:
+        raise NotImplementedError("not implemented")
 
-    def allreduce(self, tensors: List[torch.Tensor], opts: object) -> Work: ...
+    def allreduce(self, tensors: List[torch.Tensor], opts: object) -> Work:
+        raise NotImplementedError("not implemented")
+
+    def size(self) -> int:
+        raise NotImplementedError("not implemented")
 
 
 class ProcessGroupGloo(ProcessGroup):
@@ -70,6 +75,9 @@ class ProcessGroupGloo(ProcessGroup):
     def allreduce(self, tensors: List[torch.Tensor], opts: object) -> Work:
         return self._pg.allreduce(tensors, opts)
 
+    def size(self) -> int:
+        return self._pg.size()
+
 
 class ProcessGroupDummy(ProcessGroup):
     def __init__(self) -> None:
@@ -81,6 +89,9 @@ class ProcessGroupDummy(ProcessGroup):
     def allreduce(self, tensors: List[torch.Tensor], opts: object) -> Work:
         # TODO: return work object
         pass
+
+    def size(self) -> int:
+        return 1
 
 
 class BabyWork(Work):
@@ -98,10 +109,26 @@ class BabyWork(Work):
 
 
 class ProcessGroupBaby(ProcessGroup):
+    """
+    This is a process group that runs the underlying process group in a
+    subprocess. Since it's running in a subprocess all tensors need to be in
+    shared memory or will be moved to shared memory. CUDA tensors are implicitly
+    share able and don't need any changes.
+
+    If the child process is killed while an operation is running CUDA tensors
+    may leak in the current implementation.
+
+    For the NCCL backend, extra memory will be used by the subprocesses CUDA
+    context compared to running NCCL in the main process. This is typically
+    around ~1GB.
+    """
+
     PG_CLASS: Type[BaseProcessGroup]
 
     def __init__(self, timeout: float = 60.0) -> None:
         super().__init__(0, 1)
+
+        self._world_size = -1
 
         self._p = None
         self._tx = None
@@ -143,6 +170,8 @@ class ProcessGroupBaby(ProcessGroup):
         if self._p is not None:
             self._p.kill()
 
+        self._world_size = world_size
+
         ctx = mp.get_context("spawn")
         self._tx = ctx.Queue()
         self._rx = ctx.Queue()
@@ -158,12 +187,16 @@ class ProcessGroupBaby(ProcessGroup):
         assert isinstance(tensors, list), "input must be list"
 
         for tensor in tensors:
-            assert tensor.is_shared(), "tensor must be in shared memory to be reduced"
+            if not tensor.is_shared():
+                tensor.share_memory_()
 
         self._tx.put(("allreduce", tensors, opts), timeout=self._timeout)
         op_id = _get(self._rx, self._timeout)
         assert isinstance(op_id, int), f"invalid return {op_id}"
         return BabyWork(tx=self._tx, rx=self._rx, op_id=op_id, timeout=self._timeout)
+
+    def size(self) -> int:
+        return self._world_size
 
 
 class ProcessGroupBabyGloo(ProcessGroupBaby):
