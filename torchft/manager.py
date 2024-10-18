@@ -126,7 +126,9 @@ class Manager:
 
     def allreduce_grad(self, grad: torch.Tensor) -> torch.futures.Future[torch.Tensor]:
         if self._errored:
-            return
+            fut = torch.futures.Future()
+            fut.set_result(grad)
+            return fut
 
         self._quorum_future.result()
 
@@ -149,9 +151,8 @@ class Manager:
             logger.exception("got exception in all reduce -- skipping remaining")
             self._errored = True
 
-            # TODO: swallow errors via _errored
             fut = torch.futures.Future()
-            fut.set_exception(e)
+            fut.set_result(grad)
             return fut
 
     def step(self) -> None:
