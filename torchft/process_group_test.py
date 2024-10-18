@@ -2,8 +2,15 @@ from unittest import TestCase
 
 import torch
 from torch.distributed import TCPStore, ReduceOp
+import torch.distributed as dist
+from torch import nn
 
-from torchft.process_group import ProcessGroupBabyGloo, ProcessGroupGloo
+from torchft.process_group import (
+    ProcessGroupBabyGloo,
+    ProcessGroupGloo,
+    ProcessGroupDummy,
+    ProcessGroup,
+)
 
 
 class ProcessGroupTest(TestCase):
@@ -22,6 +29,10 @@ class ProcessGroupTest(TestCase):
 
         a_work = pg.allreduce([at], ReduceOp.SUM)
         a_work.wait()
+
+        m = nn.Linear(3, 4)
+        m = torch.nn.parallel.DistributedDataParallel(m, process_group=pg)
+        m(torch.rand(2, 3))
 
     def test_baby_gloo(self) -> None:
         store = TCPStore(
@@ -48,3 +59,9 @@ class ProcessGroupTest(TestCase):
         b_work.wait()
 
         torch.testing.assert_close(at, bt)
+
+    def test_dummy(self) -> None:
+        pg = ProcessGroupDummy(0, 1)
+        m = nn.Linear(3, 4)
+        m = torch.nn.parallel.DistributedDataParallel(m, process_group=pg)
+        m(torch.rand(2, 3))

@@ -12,6 +12,7 @@ from torch.distributed import (
     ProcessGroupGloo as BaseProcessGroupGloo,
     ProcessGroupNCCL as BaseProcessGroupNCCL,
 )
+import torch.distributed as dist
 from torch.distributed.distributed_c10d import Work
 import torch
 import torch.multiprocessing as mp
@@ -55,14 +56,20 @@ class ProcessGroup(BaseProcessGroup):
         raise NotImplementedError("not implemented")
 
     def allgather(
-        self, output: List[List[torch.Tensor]], input: List[torch.Tensor], opts: object
+        self,
+        output_tensors: List[List[torch.Tensor]],
+        input_tensor: List[torch.Tensor],
+        opts: object,
     ) -> Work:
         raise NotImplementedError("not implemented")
 
-    def broadcast(self, vec: List[torch.Tensor], opts: object) -> Work:
+    def broadcast(self, tensor_list: List[torch.Tensor], opts: object) -> Work:
         raise NotImplementedError("not implemented")
 
     def size(self) -> int:
+        raise NotImplementedError("not implemented")
+
+    def getBackendName(self) -> str:
         raise NotImplementedError("not implemented")
 
 
@@ -85,49 +92,77 @@ class ProcessGroupGloo(ProcessGroup):
     def allreduce(self, tensors: List[torch.Tensor], opts: object) -> Work:
         return self._pg.allreduce(tensors, opts)
 
+    def allgather(
+        self,
+        output_tensors: List[List[torch.Tensor]],
+        input_tensor: List[torch.Tensor],
+        opts: object,
+    ) -> Work:
+        return self._pg.allgather(output_tensors, input_tensor, opts)
+
+    def broadcast(self, tensor_list: List[torch.Tensor], opts: object) -> Work:
+        return self._pg.broadcast(tensor_list, opts)
+
     def size(self) -> int:
         return self._pg.size()
 
+    def getBackendName(self) -> str:
+        return "torchft-gloo"
 
-class DummyWork(Work):
-    def __init__(self) -> None:
+
+class DummyWork(dist._Work):
+    def __init__(self, result):
         super().__init__()
+        self.result_ = result
+        self.future_ = torch.futures.Future()
+        self.future_.set_result(result)
 
-    def get_future(self) -> Future:
-        future: Future = Future()
-        future.set_result(None)
-        return future
-
-    def wait(self, timeout: Optional[timedelta] = None) -> bool:
+    def wait(self, timeout):
         return True
+
+    def get_future(self):
+        return self.future_
 
 
 class ProcessGroupDummy(ProcessGroup):
-    def __init__(self) -> None:
-        super().__init__(0, 1)
+    """
+    This PG only supports world_size of 1
+    """
 
-    def configure(self, store_addr: str, rank: int, world_size: int) -> None:
-        pass
+    def __init__(self, rank, world):
+        super().__init__(rank, world)
+        assert rank == 0
+        assert world == 1
 
-    def allreduce(self, tensors: List[torch.Tensor], opts: object) -> Work:
-        print("allreduce")
-        return DummyWork()
+        self._rank = rank
+        self._world = world
+        self.wait_count = 0
+        self.get_future_count = 0
+        self._work = []
 
-    def allgather(
-        self, output: List[List[torch.Tensor]], input: List[torch.Tensor], opts: object
-    ) -> Work:
-        print("allgather")
-        return DummyWork()
+    def broadcast(self, tensor_list, opts):
+        res = DummyWork(tensor_list)
+        self._work.append(res)
+        return res
 
-    def broadcast(self, vec: List[torch.Tensor], opts: object) -> Work:
-        print("broadcast")
-        return DummyWork()
+    def allgather(self, output_tensors, input_tensor, opts):
+        for o, i in zip(output_tensors[0], input_tensor):
+            o.copy_(i)
 
-    def getBackendName(self) -> str:
-        return "foo"
+        res = DummyWork(output_tensors)
+        self._work.append(res)
+        return res
 
-    def size(self) -> int:
-        return 1
+    def allreduce(self, tensors, opts):
+        res = DummyWork(tensors)
+        self._work.append(res)
+        return res
+
+    def size(self):
+        return self._world
+
+    def getBackendName(self):
+        return "torchft-dummy"
 
 
 class BabyWork(Work):
@@ -239,6 +274,12 @@ class ProcessGroupBaby(ProcessGroup):
 class ProcessGroupBabyGloo(ProcessGroupBaby):
     PG_CLASS = BaseProcessGroupGloo
 
+    def getBackendName(self):
+        return "torchft-baby-gloo"
+
 
 class ProcessGroupBabyNCCL(ProcessGroupBaby):
     PG_CLASS = BaseProcessGroupGloo
+
+    def getBackendName(self):
+        return "torchft-baby-nccl"
