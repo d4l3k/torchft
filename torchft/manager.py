@@ -1,7 +1,7 @@
 import os
 import uuid
 import socket
-from typing import Dict
+from typing import Dict, Optional
 import time
 import logging
 from concurrent.futures import ThreadPoolExecutor
@@ -38,16 +38,35 @@ class Manager:
         port: int = MANAGER_DEFAULT_PORT,
         use_async_quorum: bool = True,
         timeout: timedelta = timedelta(seconds=60),
+        rank: Optional[int] = None,
+        world_size: Optional[int] = None,
+        store_addr: Optional[str] = None,
+        store_port: Optional[int] = None,
+        lighthouse_addr: Optional[str] = None,
     ) -> None:
+        """
+        Args:
+            load_state_dict: function to load the state dict when recovering
+            state_dict: function to save the state dict with recovering
+            min_replica_size: minimum number of replicas on each step
+            port: if rank==0, the port to run the manager server on
+            use_async_quorum: whether to run the quorum asynchronously during the forward pass
+            timeout: timeout for all operations
+            rank: the replica group local rank
+            world_size: the replica group local world size
+            store_addr: TCPStore address for this replica group
+            store_port: TCPStore port for this replica group
+            ligthouse_addr: if rank==0, the address of the lighthouse server
+        """
         self._load_state_dict = load_state_dict
         self._state_dict = state_dict
         self._use_async_quorum = use_async_quorum
         self._timeout = timeout
 
-        store_addr = os.environ["MASTER_ADDR"]
-        store_port = int(os.environ["MASTER_PORT"])
-        rank = int(os.environ["RANK"])
-        world_size = int(os.environ["WORLD_SIZE"])
+        store_addr = store_addr or os.environ["MASTER_ADDR"]
+        store_port = store_port or int(os.environ["MASTER_PORT"])
+        rank = rank or int(os.environ["RANK"])
+        world_size = world_size or int(os.environ["WORLD_SIZE"])
         self._rank = rank
         self._min_replica_size = min_replica_size
 
@@ -72,7 +91,7 @@ class Manager:
             hostname = socket.gethostname()
             addr = f"http://{hostname}:{port}"
             bind = f"[::]:{port}"
-            lighthouse_addr = os.environ["TORCHFT_LIGHTHOUSE"]
+            lighthouse_addr = lighthouse_addr or os.environ["TORCHFT_LIGHTHOUSE"]
 
             replica_id = str(uuid.uuid4())
             # pyre-fixme[16]: can't find rust module
@@ -120,10 +139,17 @@ class Manager:
             # it later.
             work = self._pg.allreduce([grad], ReduceOp.SUM)
             self._pending_work.append((work, [grad]))
-            return work.get_future()
+            fut = work.get_future()
+
+            # unbox the tensor from the list
+            # TODO: swallow errors via _errored
+            return fut.then(lambda fut: fut.value()[0])
+
         except Exception as e:
             logger.exception("got exception in all reduce -- skipping remaining")
             self._errored = True
+
+            # TODO: swallow errors via _errored
             fut = torch.futures.Future()
             fut.set_exception(e)
             return fut
@@ -208,6 +234,7 @@ class Manager:
                 # should_commit call below thus overlapping with the communication
                 # overhead.
                 for tensor in tensors:
+                    # TODO: we can chain this to the allreduce future.
                     tensor /= self._participating_replicas
 
         self._pending_work = []
