@@ -85,7 +85,7 @@ class TestManager(TestCase):
         self.assertEqual(manager.batches_committed(), 0)
 
         manager.step()
-        manager.allreduce_grad(torch.tensor([1.0]))
+        manager.allreduce_grad(torch.tensor([1.0])).wait()
         self.assertEqual(len(manager._pending_work), 1)
         self.assertTrue(manager.should_commit())
         self.assertEqual(len(manager._pending_work), 0)
@@ -121,14 +121,14 @@ class TestManager(TestCase):
         self.assertEqual(manager._step, 0)
 
         manager.step()
-        manager.allreduce_grad(torch.tensor([1.0]))
+        manager.allreduce_grad(torch.tensor([1.0])).wait()
         self.assertFalse(manager._healing)
         self.assertTrue(manager.should_commit())
 
         self.assertEqual(manager._quorum_id, 123)
         self.assertEqual(manager._step, 20)
         self.assertEqual(manager._pg.allreduce.call_count, 1)
-        self.assertEqual(manager._pg.allreduce.return_value.wait.call_count, 1)
+        self.assertEqual(manager._pg.allreduce.return_value.get_future.call_count, 1)
 
         self.assertEqual(self.load_state_dict.call_count, 1)
 
@@ -160,7 +160,7 @@ class TestManager(TestCase):
         self.assertTrue(manager._healing)
 
         grad = torch.tensor([1.0])
-        manager.allreduce_grad(grad)
+        manager.allreduce_grad(grad).wait()
         torch.testing.assert_close(grad, torch.zeros_like(grad))
         # don't commit since num_max < min_replica_size
         self.assertFalse(manager.should_commit())
@@ -169,7 +169,7 @@ class TestManager(TestCase):
         self.assertEqual(manager._quorum_id, 123)
         self.assertEqual(manager._step, 20)
         self.assertEqual(manager._pg.allreduce.call_count, 1)
-        self.assertEqual(manager._pg.allreduce.return_value.wait.call_count, 1)
+        self.assertEqual(manager._pg.allreduce.return_value.get_future.call_count, 1)
 
         self.assertEqual(self.load_state_dict.call_count, 1)
 
@@ -206,7 +206,7 @@ class TestManager(TestCase):
         self.assertTrue(manager._healing)
 
         grad = torch.tensor([1.0])
-        manager.allreduce_grad(grad)
+        manager.allreduce_grad(grad).wait()
         torch.testing.assert_close(grad, torch.zeros_like(grad))
         # don't commit since num_max < min_replica_size
         self.assertTrue(manager.should_commit())
@@ -215,7 +215,7 @@ class TestManager(TestCase):
         self.assertEqual(manager._quorum_id, 123)
         self.assertEqual(manager._step, 20)
         self.assertEqual(manager._pg.allreduce.call_count, 1)
-        self.assertEqual(manager._pg.allreduce.return_value.wait.call_count, 1)
+        self.assertEqual(manager._pg.allreduce.return_value.get_future.call_count, 1)
 
         self.assertEqual(self.load_state_dict.call_count, 1)
 
@@ -243,17 +243,17 @@ class TestManager(TestCase):
         self.assertEqual(manager._step, 0)
 
         manager.step()
-        manager.allreduce_grad(torch.tensor([1.0]))
+        manager.allreduce_grad(torch.tensor([1.0])).wait()
         self.assertEqual(manager._pg.allreduce.call_count, 1)
 
         # inject failure when work queued
         manager._pg.allreduce.side_effect = RuntimeError("injected failure")
-        manager.allreduce_grad(torch.tensor([1.0]))
+        manager.allreduce_grad(torch.tensor([1.0])).wait()
         self.assertTrue(manager._errored)
         # this should be skipped due to error
-        manager.allreduce_grad(torch.tensor([1.0]))
+        manager.allreduce_grad(torch.tensor([1.0])).wait()
         self.assertEqual(manager._pg.allreduce.call_count, 2)
-        self.assertEqual(manager._pg.allreduce.return_value.wait.call_count, 0)
+        self.assertEqual(manager._pg.allreduce.return_value.get_future.call_count, 1)
 
         self.assertFalse(manager.should_commit())
         self.assertTrue(manager._errored)
@@ -273,17 +273,18 @@ class TestManager(TestCase):
             False,  # heal
         )
         manager.step()
-        manager._pg.allreduce.return_value.wait.side_effect = RuntimeError(
-            "injected failure"
-        )
-        manager.allreduce_grad(torch.tensor([1.0]))
-        self.assertFalse(manager._errored)
+
+        bad_fut = torch.futures.Future()
+        bad_fut.set_exception(RuntimeError("injected failure"))
+        manager._pg.allreduce.return_value.get_future.return_value = bad_fut
+        manager.allreduce_grad(torch.tensor([1.0])).wait()
+        self.assertTrue(manager._errored)
         self.assertFalse(manager.should_commit())
         self.assertTrue(manager._errored)
-        self.assertEqual(manager._pg.allreduce.return_value.wait.call_count, 1)
+        self.assertEqual(manager._pg.allreduce.return_value.get_future.call_count, 2)
 
         # cleanup
-        manager._pg.allreduce.return_value.wait.side_effect = None
+        manager._pg.allreduce.reset_mock(return_value=True)
 
         # recover on next step
         client_mock().quorum.return_value = (
@@ -298,5 +299,5 @@ class TestManager(TestCase):
         )
 
         manager.step()
-        manager.allreduce_grad(torch.tensor([1.0]))
+        manager.allreduce_grad(torch.tensor([1.0])).wait()
         self.assertTrue(manager.should_commit())

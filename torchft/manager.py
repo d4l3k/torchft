@@ -1,7 +1,7 @@
 import os
 import uuid
 import socket
-from typing import Dict, Optional
+from typing import Dict, Optional, List
 import time
 import logging
 from concurrent.futures import ThreadPoolExecutor
@@ -115,7 +115,7 @@ class Manager:
         self._errored = False
         self._healing = False
         self._participating_replicas = 0
-        self._pending_work: Tuple[Work, List[torch.Tensor]] = []
+        self._pending_work: List[torch.futures.Future[torch.Tensor]] = []
         self._batches_committed = 0
 
         # first step is 1
@@ -136,16 +136,36 @@ class Manager:
             assert self._use_async_quorum
             grad.zero_()
 
+        # TODO: increase timeout when waiting when healing
         try:
             # Run the allreduce async and save the work object so we can wait on
             # it later.
             work = self._pg.allreduce([grad], ReduceOp.SUM)
-            self._pending_work.append((work, [grad]))
             fut = work.get_future()
 
-            # unbox the tensor from the list
-            # TODO: swallow errors via _errored
-            return fut.then(lambda fut: fut.value()[0])
+            # schedule error handling and grad normalization as a continuation
+            # on the Future
+            def callback(
+                fut: torch.futures.Future[List[torch.Tensor]],
+            ) -> torch.futures.Future[torch.Tensor]:
+                nonlocal grad
+
+                try:
+                    val = fut.value()
+                except Exception:
+                    logger.exception(
+                        "got exception in all reduce future -- skipping remaining"
+                    )
+                    self._errored = True
+                    return grad
+
+                grad /= self._participating_replicas
+
+                return grad
+
+            fut = fut.then(callback)
+            self._pending_work.append(fut)
+            return fut
 
         except Exception as e:
             logger.exception("got exception in all reduce -- skipping remaining")
@@ -219,28 +239,16 @@ class Manager:
             self._step = max_step
 
     def should_commit(self) -> bool:
-        if not self._errored:
-            for work, tensors in self._pending_work:
-                try:
-                    # TODO: increase timeout when waiting when healing
-                    work.wait()
-                except:
-                    logger.exception(
-                        "got exception in all reduce -- skipping remaining"
-                    )
-                    self._errored = True
-                    break
+        for work in self._pending_work:
+            # check at the beginning of since .wait() may trigger errors
+            if self._errored:
+                break
 
-                # On CUDA devices this operation will run async with the
-                # should_commit call below thus overlapping with the communication
-                # overhead.
-                for tensor in tensors:
-                    # TODO: we can chain this to the allreduce future.
-                    tensor /= self._participating_replicas
+            # We swallow the error at in a future then callback so this will
+            # never return an error.
+            work.wait()
 
         self._pending_work = []
-
-        logger.info("should_commit")
 
         enough_replicas = self._participating_replicas >= self._min_replica_size
         local_should_commit = enough_replicas and not self._errored
