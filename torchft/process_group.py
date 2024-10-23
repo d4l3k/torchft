@@ -9,6 +9,7 @@ from torch.distributed import (
     Store,
     TCPStore,
     PrefixStore,
+    BroadcastOptions,
     ProcessGroupGloo as BaseProcessGroupGloo,
     ProcessGroupNCCL as BaseProcessGroupNCCL,
 )
@@ -65,6 +66,11 @@ class ProcessGroup(BaseProcessGroup):
 
     def broadcast(self, tensor_list: List[torch.Tensor], opts: object) -> Work:
         raise NotImplementedError("not implemented")
+
+    def broadcast_one(self, tensor: torch.Tensor, root: int) -> Work:
+        opts = BroadcastOptions()
+        opts.rootRank = root
+        return self.broadcast([tensor], opts)
 
     def size(self) -> int:
         raise NotImplementedError("not implemented")

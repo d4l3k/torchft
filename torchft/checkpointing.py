@@ -1,7 +1,6 @@
 import urllib.request
-from http.server import BaseHTTPRequestHandler, HTTPServer
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import socket
-import socketserver
 import threading
 import logging
 import io
@@ -48,7 +47,7 @@ class CheckpointServer:
                 self.wfile.write(msg.encode())
 
         server_address = ("", 0)
-        self._server = HTTPServer(server_address, RequestHandler)
+        self._server = ThreadingHTTPServer(server_address, RequestHandler)
         logger.info(f"Started CheckpointServer on {self.address()}...")
 
         self._thread = threading.Thread(
