@@ -71,6 +71,13 @@ for i in range(1000):
     optimizer.step()
 ```
 
+## Example Parameter Server
+
+torchft has a fault tolerant parameter server implementation built on it's
+reconfigurable ProcessGroups. This does not require/use a Lighthouse server.
+
+See [parameter_server_test.py](./torchft/parameter_server_test.py) for an example.
+
 ## Running Tests / Lint
 
 ```sh

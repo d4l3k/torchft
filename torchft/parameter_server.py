@@ -21,10 +21,17 @@ class ParameterServer(ABC):
     ProcessGroups.
     """
 
-    def __init__(self, port: int) -> None:
+    def __init__(self, port: int, store_port: int = 0) -> None:
+        """
+        Create a new ParameterServer.
+
+        Args:
+            port: the port to bind the HTTP server to.
+            store_port: the port to bind the TCPStore server to.
+        """
         self.store = TCPStore(
             host_name="0.0.0.0",
-            port=0,
+            port=store_port,
             is_master=True,
             wait_for_workers=False,
         )
@@ -93,14 +100,10 @@ class ParameterServer(ABC):
         )
         self._thread.start()
 
-    @classmethod
-    def load_from_address(cls, address: str) -> object:
-        logger.info(f"fetching checkpoint from {address}")
-
-        reader = io.BytesIO(data)
-        return torch.load(reader, weights_only=True)
-
     def address(self) -> str:
+        """
+        Returns the HTTP address to create a new session on this server.
+        """
         port = self._server.socket.getsockname()[1]
         return f"http://{socket.gethostname()}:{port}/new_session"
 
@@ -112,10 +115,21 @@ class ParameterServer(ABC):
 
     @classmethod
     @abstractmethod
-    def new_process_group(cls) -> ProcessGroup: ...
+    def new_process_group(cls) -> ProcessGroup:
+        """
+        Create a new non-configured ProcessGroup for the ParameterServer to
+        configure when setting up server and client connections.
+        """
+        ...
 
     @classmethod
     def new_session(cls, address: str) -> ProcessGroup:
+        """
+        Creates a new session on the parameter server and returns a ProcessGroup
+        configured for that server.
+
+        Client is rank 1, server is rank 0.
+        """
         with urllib.request.urlopen(address) as f:
             data = json.load(f)
 
@@ -138,4 +152,19 @@ class ParameterServer(ABC):
         self.forward(session_id, pg)
 
     @abstractmethod
-    def forward(self, session_id: str, pg: ProcessGroup) -> None: ...
+    def forward(self, session_id: str, pg: ProcessGroup) -> None:
+        """
+        This method will be called once per session in a dedicated thread. To
+        support multiple operations on a single session you should put a
+        for-loop in your forward implementation.
+
+        If an error occurs, the process group will be freed and the client will
+        have to create a new session.
+
+        The server rank is 0 and the client rank is 1.
+
+        Args:
+            session_id: a unique uuid for this session
+            pg: the ProcessGroup that's configured for the client.
+        """
+        ...
