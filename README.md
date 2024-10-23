@@ -87,6 +87,6 @@ $ cargo fmt
 
 ## License
 
-Apache 2.0 -- see [LICENSE](./LICENSE) for more details.
+BSD 3-Clause -- see [LICENSE](./LICENSE) for more details.
 
 Copyright (c) Tristan Rice 2024
