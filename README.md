@@ -24,15 +24,18 @@ $ pip install -e .
 
 ## Lighthouse
 
+The lighthouse is used for fault tolerance across replicated workers (DDP/FSDP)
+when using synchronous training.
+
 You can start a lighthouse server by running:
 
 ```sh
 $ RUST_BACKTRACE=1 torchft_lighthouse --min_replicas 1 --quorum_tick_ms 100 --join_timeout_ms 1000
 ```
 
-## Example Training Loop
+## Example Training Loop (DDP)
 
-See [train.py](./train.py) for the full example.
+See [train_ddp.py](./train_ddp.py) for the full example.
 
 Invoke with:
 
