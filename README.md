@@ -1,3 +1,5 @@
+> ⚠️ NOTE: this has been moved to https://github.com/pytorch-labs/torchft ⚠️
+
 # torch-ft
 Prototype repo for PyTorch fault tolerance
 
